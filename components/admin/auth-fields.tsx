@@ -1,13 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { Outfit } from 'next/font/google'
 import { useId, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { AppleIcon, ArrowDown01Icon, ArrowLeft02Icon, LockIcon, ViewIcon, ViewOffIcon } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
-
-const outfit = Outfit({ subsets: ['latin'], weight: ['500'] })
 
 export type FieldState = 'default' | 'error' | 'success'
 
@@ -20,7 +17,7 @@ const fieldStateClass: Record<FieldState, string> = {
 export function AuthTitle({ title, subtitle, centered }: { title: string; subtitle?: React.ReactNode; centered?: boolean }) {
   return (
     <div className={cn('flex flex-col', centered ? 'items-center gap-[13px] text-center' : 'gap-1')}>
-      <h1 className={cn(outfit.className, 'font-medium text-[#1e1e1e]', centered ? 'text-[25px]' : 'text-xl')}>{title}</h1>
+      <h1 className={cn('font-medium text-[#1e1e1e]', centered ? 'text-[25px]' : 'text-xl')}>{title}</h1>
       {subtitle && <p className={cn(centered ? 'text-[13px] text-black/40' : 'text-[10px] text-[#989997]')}>{subtitle}</p>}
     </div>
   )

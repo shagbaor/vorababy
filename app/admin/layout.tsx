@@ -1,8 +1,8 @@
-import { Inter } from 'next/font/google'
+import { Outfit } from 'next/font/google'
 import type { Metadata } from 'next'
 import { AdminStoreProvider } from '@/components/admin/admin-store'
 
-const inter = Inter({ subsets: ['latin'] })
+const outfit = Outfit({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Admin - Vorapicks',
@@ -15,7 +15,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }>) {
   return (
-    <div className={`${inter.className} min-h-dvh bg-white text-[#1e1e1e]`}>
+    <div className={`${outfit.className} min-h-dvh bg-white text-[#1e1e1e]`}>
       <AdminStoreProvider>{children}</AdminStoreProvider>
     </div>
   )
