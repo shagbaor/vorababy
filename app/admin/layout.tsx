@@ -1,6 +1,6 @@
 import { Inter } from 'next/font/google'
 import type { Metadata } from 'next'
-import BottomNav from '@/components/admin/bottom-nav'
+import { AdminStoreProvider } from '@/components/admin/admin-store'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -16,8 +16,7 @@ export default function AdminLayout({
 }>) {
   return (
     <div className={`${inter.className} min-h-dvh bg-white text-[#1e1e1e]`}>
-      <div className="mx-auto w-full max-w-[390px] pb-[96px]">{children}</div>
-      <BottomNav />
+      <AdminStoreProvider>{children}</AdminStoreProvider>
     </div>
   )
 }

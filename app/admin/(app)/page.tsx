@@ -1,10 +1,14 @@
+'use client'
+
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Briefcase03Icon,
   Coins01Icon,
   CustomerService01Icon,
   Invoice01Icon,
+  Logout03Icon,
   Motorbike02Icon,
   Notification01Icon,
   Store01Icon,
@@ -12,31 +16,38 @@ import {
 } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
 import { adminSections } from '@/components/admin/admin-nav'
-import { formatNaira, formatNairaCompact, formatNairaExact } from '@/lib/admin/format'
-import {
-  adminProfile,
-  liveOrderFeed,
-  platformRevenue,
-  platformStats,
-  todaysOverview,
-  type FeedItem,
-} from '@/lib/admin/mock-data'
+import { useAdminStore } from '@/components/admin/admin-store'
+import { DisputeCard } from '@/components/admin/dispute-card'
+import { EmptyState } from '@/components/admin/ui'
+import { signOut } from '@/lib/admin/auth'
+import { formatNaira, formatNairaCompact } from '@/lib/admin/format'
+import { adminProfile, platformRevenue, platformStats, todaysOverview } from '@/lib/admin/mock-data'
 
 export default function AdminDashboardPage() {
+  const router = useRouter()
+  const { disputes } = useAdminStore()
+  const activeDisputes = disputes.filter((d) => d.status !== 'resolved')
+  const resolvedDisputes = disputes.length - activeDisputes.length
+
   const stats = [
     { label: 'Active Sellers', value: platformStats.activeSellers, icon: Store01Icon },
     { label: 'Active Riders', value: platformStats.activeRiders, icon: Motorbike02Icon },
-    { label: 'Resolved Disputes', value: platformStats.resolvedDisputes, icon: Briefcase03Icon },
+    { label: 'Resolved Disputes', value: resolvedDisputes, icon: Briefcase03Icon },
   ]
 
   const overview = [
-    { label: 'Orders Today', ...todaysOverview.ordersToday, icon: Invoice01Icon, display: String(todaysOverview.ordersToday.value) },
-    { label: 'Active Disputes', ...todaysOverview.activeDisputes, icon: CustomerService01Icon, display: String(todaysOverview.activeDisputes.value) },
-    { label: 'Fees Held', ...todaysOverview.feesHeld, icon: Coins01Icon, display: formatNairaCompact(todaysOverview.feesHeld.value) },
-    { label: 'Total Users', ...todaysOverview.totalUsers, icon: UserIcon, display: todaysOverview.totalUsers.value.toLocaleString() },
+    { label: 'Orders Today', change: todaysOverview.ordersToday.change, icon: Invoice01Icon, display: String(todaysOverview.ordersToday.value) },
+    { label: 'Active Disputes', change: todaysOverview.activeDisputes.change, icon: CustomerService01Icon, display: String(activeDisputes.length) },
+    { label: 'Fees Held', change: todaysOverview.feesHeld.change, icon: Coins01Icon, display: formatNairaCompact(todaysOverview.feesHeld.value) },
+    { label: 'Total Users', change: todaysOverview.totalUsers.change, icon: UserIcon, display: todaysOverview.totalUsers.value.toLocaleString() },
   ]
 
   const quickActions = adminSections.filter((section) => section.actionIcon)
+
+  function handleSignOut() {
+    signOut()
+    router.replace('/admin/login')
+  }
 
   return (
     <main className="px-[22px] pt-8">
@@ -54,13 +65,24 @@ export default function AdminDashboardPage() {
             <h1 className="text-base font-medium text-[#1e1e1e]">{adminProfile.name}</h1>
           </div>
         </div>
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="rounded-full p-1 text-[#1e1e1e] transition-colors hover:bg-gray-100"
-        >
-          <HugeiconsIcon icon={Notification01Icon} size={24} strokeWidth={1.5} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Notifications"
+            className="rounded-full p-1.5 text-[#1e1e1e] transition-colors hover:bg-gray-100"
+          >
+            <HugeiconsIcon icon={Notification01Icon} size={24} strokeWidth={1.5} />
+          </button>
+          <button
+            type="button"
+            aria-label="Sign out"
+            title="Sign out"
+            onClick={handleSignOut}
+            className="rounded-full p-1.5 text-[#6b7280] transition-colors hover:bg-gray-100"
+          >
+            <HugeiconsIcon icon={Logout03Icon} size={22} strokeWidth={1.5} />
+          </button>
+        </div>
       </header>
 
       <div className="mt-6 flex flex-col gap-[13px]">
@@ -89,29 +111,18 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-4 gap-1">
             {quickActions.map(({ label, href, actionIcon }, index) => {
               const primary = index === 0
-              const content = (
-                <>
+              return (
+                <Link key={label} href={href} className="group flex flex-col items-center gap-2">
                   <span
                     className={cn(
                       'flex size-14 items-center justify-center rounded-2xl transition-colors',
-                      primary ? 'bg-[#16a34a] text-white' : 'bg-[#f9fafb] text-[#4b5563] group-hover:bg-gray-100',
+                      primary ? 'bg-[#16a34a] text-white group-hover:bg-[#15803d]' : 'bg-[#f9fafb] text-[#4b5563] group-hover:bg-gray-100',
                     )}
                   >
                     <HugeiconsIcon icon={actionIcon!} size={24} strokeWidth={1.5} />
                   </span>
                   <span className="text-[10px] font-medium text-[#4b5563]">{label}</span>
-                </>
-              )
-              const itemClass = 'group flex flex-col items-center gap-2'
-
-              return href ? (
-                <Link key={label} href={href} className={itemClass}>
-                  {content}
                 </Link>
-              ) : (
-                <span key={label} className={cn(itemClass, 'cursor-not-allowed')} aria-disabled="true" title="Coming soon">
-                  {content}
-                </span>
               )
             })}
           </div>
@@ -141,55 +152,25 @@ export default function AdminDashboardPage() {
 
         {/* Live order feed */}
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold leading-6 text-[#1e1e1e]">Live Order Feed</h2>
-          {liveOrderFeed.length > 0 ? (
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold leading-6 text-[#1e1e1e]">Live Order Feed</h2>
+            <Link href="/admin/disputes" className="text-xs font-medium text-[#2e8b57] hover:underline">
+              View all
+            </Link>
+          </div>
+          {activeDisputes.length > 0 ? (
             <ul className="flex flex-col gap-[9px]">
-              {liveOrderFeed.map((item) => (
-                <li key={`${item.id}-${item.orderId}`}>
-                  <FeedCard item={item} />
+              {activeDisputes.map((dispute) => (
+                <li key={dispute.id}>
+                  <DisputeCard dispute={dispute} />
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="rounded-2xl border border-[#f3f4f6] p-[17px] text-center text-sm text-[#6b7280]">
-              No live orders right now.
-            </p>
+            <EmptyState>No open disputes right now.</EmptyState>
           )}
         </section>
       </div>
     </main>
-  )
-}
-
-function FeedCard({ item }: { item: FeedItem }) {
-  const open = item.status === 'open'
-
-  return (
-    <article className="rounded-2xl border border-[#f3f4f6] bg-white p-[17px] tracking-[0.08px]">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold leading-4 text-[#6b7280]">{item.id}</p>
-          <p className="mt-0.5 truncate text-sm font-semibold leading-5 text-[#111827]">{item.title}</p>
-        </div>
-        <span
-          className={cn(
-            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-[15.5px]',
-            open ? 'bg-[#fee2e2] text-[#dc2626]' : 'bg-[#dcfce7] text-[#16a34a]',
-          )}
-        >
-          {open ? 'Open' : 'Resolved'}
-        </span>
-      </div>
-      <div className="mt-3 flex items-center justify-between">
-        <div className="flex items-center gap-3 text-xs leading-4 text-[#6b7280]">
-          <span>{item.orderId}</span>
-          <span aria-hidden className="text-[#9ca3af]">
-            ·
-          </span>
-          <span>{item.timeAgo}</span>
-        </div>
-        <span className="text-sm font-semibold leading-5 text-[#111827]">{formatNairaExact(item.amount)}</span>
-      </div>
-    </article>
   )
 }

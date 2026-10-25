@@ -28,3 +28,18 @@ export function formatNairaCompact(amount: number) {
   if (amount >= 1_000) return `₦${+(amount / 1_000).toFixed(1)}K`
   return formatNaira(amount)
 }
+
+/** 10:22 AM */
+export function currentTime() {
+  return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+/** Amaka Osei -> AO */
+export function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join('')
+}
