@@ -34,7 +34,7 @@ export default function BottomNav() {
                 )}
               >
                 <HugeiconsIcon icon={navIcon} size={24} strokeWidth={1.5} />
-                <span className="text-[10px] font-medium leading-4 tracking-[0.14px]">{label}</span>
+                <span className="text-[11px] font-medium leading-4 tracking-[0.14px]">{label}</span>
               </Link>
             </li>
           )

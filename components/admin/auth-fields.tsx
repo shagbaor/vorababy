@@ -17,8 +17,8 @@ const fieldStateClass: Record<FieldState, string> = {
 export function AuthTitle({ title, subtitle, centered }: { title: string; subtitle?: React.ReactNode; centered?: boolean }) {
   return (
     <div className={cn('flex flex-col', centered ? 'items-center gap-[13px] text-center' : 'gap-1')}>
-      <h1 className={cn('font-medium text-[#1e1e1e]', centered ? 'text-[25px]' : 'text-xl')}>{title}</h1>
-      {subtitle && <p className={cn(centered ? 'text-[13px] text-black/40' : 'text-[10px] text-[#989997]')}>{subtitle}</p>}
+      <h1 className={cn('font-medium text-[#1e1e1e]', centered ? 'text-[27px]' : 'text-xl')}>{title}</h1>
+      {subtitle && <p className={cn(centered ? 'text-[14px] text-black/40' : 'text-[11px] text-[#989997]')}>{subtitle}</p>}
     </div>
   )
 }
@@ -96,7 +96,7 @@ export function PasswordField({
           type={visible ? 'text' : 'password'}
           aria-invalid={state === 'error' || undefined}
           className={cn(
-            'w-full bg-transparent text-[13px] outline-none placeholder:text-black/38',
+            'w-full bg-transparent text-[14px] outline-none placeholder:text-black/38',
             state === 'error' ? 'text-[#e62b2b]' : 'text-black/87',
           )}
           {...input}
@@ -144,7 +144,7 @@ export function PhoneField({
           <HugeiconsIcon icon={ArrowDown01Icon} size={18} strokeWidth={1.5} className="text-[#9f9f9f]" />
         </span>
         <span aria-hidden className="h-9 w-px bg-[#2761ff]" />
-        <span className={cn('text-[13px] font-medium', state === 'error' ? 'text-[#e62b2b]' : 'text-black/87')}>+234</span>
+        <span className={cn('text-[14px] font-medium', state === 'error' ? 'text-[#e62b2b]' : 'text-black/87')}>+234</span>
         <input
           id={id}
           type="tel"
@@ -155,7 +155,7 @@ export function PhoneField({
           onChange={(event) => onChange(event.target.value.replace(/[^\d ]/g, ''))}
           aria-invalid={state === 'error' || undefined}
           className={cn(
-            'w-full bg-transparent text-[13px] font-medium outline-none placeholder:font-normal placeholder:text-black/38',
+            'w-full bg-transparent text-[14px] font-medium outline-none placeholder:font-normal placeholder:text-black/38',
             state === 'error' ? 'text-[#e62b2b]' : 'text-black/87',
           )}
         />
@@ -166,7 +166,7 @@ export function PhoneField({
 }
 
 export function FieldHint({ tone = 'muted', children }: { tone?: 'muted' | 'error'; children: React.ReactNode }) {
-  return <p className={cn('text-[10px]', tone === 'error' ? 'text-[#e62b2b]' : 'text-black/40')}>{children}</p>
+  return <p className={cn('text-[11px]', tone === 'error' ? 'text-[#e62b2b]' : 'text-black/40')}>{children}</p>
 }
 
 export function PrimaryButton({ disabled, children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
@@ -213,14 +213,14 @@ export function SocialSignIn() {
           key={label}
           type="button"
           onClick={() => setNotice(`${label.replace('Continue with ', '')} sign-in isn't connected yet.`)}
-          className="flex h-[45px] items-center justify-center gap-4 rounded-[20px] bg-[#f4f4f4] text-[13px] text-black transition-colors hover:bg-[#ececec]"
+          className="flex h-[45px] items-center justify-center gap-4 rounded-[20px] bg-[#f4f4f4] text-[14px] text-black transition-colors hover:bg-[#ececec]"
         >
           {icon}
           {label}
         </button>
       ))}
       {notice && (
-        <p role="status" className="text-center text-[11px] text-black/50">
+        <p role="status" className="text-center text-[12px] text-black/50">
           {notice}
         </p>
       )}

@@ -61,7 +61,7 @@ export default function AdminDashboardPage() {
             {adminProfile.initials}
           </div>
           <div className="flex flex-col gap-1">
-            <p className="text-[10px] text-[#989997]">Welcome back,</p>
+            <p className="text-[11px] text-[#989997]">Welcome back,</p>
             <h1 className="text-base font-medium text-[#1e1e1e]">{adminProfile.name}</h1>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function AdminDashboardPage() {
         {/* Revenue */}
         <section className="rounded-3xl bg-[#2e8b57] p-[21px]">
           <p className="text-xs font-medium leading-4 text-[#f3f4f6]">Total Platform Revenue</p>
-          <p className="mt-0.5 text-[30px] font-bold leading-9 text-white">{formatNaira(platformRevenue)}</p>
+          <p className="mt-0.5 text-[32px] font-bold leading-9 text-white">{formatNaira(platformRevenue)}</p>
         </section>
 
         {/* Platform stats */}
@@ -99,8 +99,8 @@ export default function AdminDashboardPage() {
               <div className="flex size-8 items-center justify-center rounded-xl bg-[#f9fafb] text-[#4b5563]">
                 <HugeiconsIcon icon={icon} size={16} strokeWidth={1.5} />
               </div>
-              <p className="text-[13px] font-semibold leading-5 tracking-[0.065px] text-[#202020]">{value}</p>
-              <p className="text-center text-[9px] leading-[11.25px] tracking-[0.027px] text-[#9ca3af]">{label}</p>
+              <p className="text-[14px] font-semibold leading-5 tracking-[0.065px] text-[#202020]">{value}</p>
+              <p className="text-center text-[10px] leading-[11.25px] tracking-[0.027px] text-[#9ca3af]">{label}</p>
             </div>
           ))}
         </section>
@@ -121,7 +121,7 @@ export default function AdminDashboardPage() {
                   >
                     <HugeiconsIcon icon={actionIcon!} size={24} strokeWidth={1.5} />
                   </span>
-                  <span className="text-[10px] font-medium text-[#4b5563]">{label}</span>
+                  <span className="text-[11px] font-medium text-[#4b5563]">{label}</span>
                 </Link>
               )
             })}

@@ -89,7 +89,7 @@ export function FilterTabs<T extends string>({
             {tab.label}
             <span
               className={cn(
-                'flex size-4 items-center justify-center rounded-full text-[10px] font-bold',
+                'flex size-4 items-center justify-center rounded-full text-[11px] font-bold',
                 active ? 'bg-white/25 text-white' : 'bg-white text-[#a3a4a6]',
               )}
             >
@@ -114,7 +114,7 @@ export function Pill({ tone, children, className }: { tone: keyof typeof pillTon
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[10px] font-semibold leading-[15.5px] tracking-[0.08px]',
+        'inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold leading-[15.5px] tracking-[0.08px]',
         pillTones[tone],
         className,
       )}
@@ -231,7 +231,7 @@ export function useToast() {
 
   const toast = message ? (
     <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4" role="status" aria-live="polite">
-      <p className="rounded-full bg-[#e5f5ec] px-3 py-1.5 text-[11px] font-medium text-[#1e1e1e] shadow-sm animate-in fade-in slide-in-from-top-2">
+      <p className="rounded-full bg-[#e5f5ec] px-3 py-1.5 text-[12px] font-medium text-[#1e1e1e] shadow-sm animate-in fade-in slide-in-from-top-2">
         {message}
       </p>
     </div>

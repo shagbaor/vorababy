@@ -61,20 +61,20 @@ function UserRow({ user }: { user: AdminUser }) {
       <Avatar name={user.name} size={40} online={user.verified} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="truncate text-[13px] font-medium text-[#1e1e1e]">{user.name}</p>
-          <span className="shrink-0 rounded bg-[#f3f4f6] px-1.5 py-px text-[9px] text-[#4b5563]">{roleLabel[user.role]}</span>
+          <p className="truncate text-[14px] font-medium text-[#1e1e1e]">{user.name}</p>
+          <span className="shrink-0 rounded bg-[#f3f4f6] px-1.5 py-px text-[10px] text-[#4b5563]">{roleLabel[user.role]}</span>
         </div>
         <p className="truncate text-xs text-[#9ca3af]">{user.email}</p>
         {user.banned ? (
-          <Pill tone="red" className="mt-0.5 px-1.5 py-0 text-[9px]">
+          <Pill tone="red" className="mt-0.5 px-1.5 py-0 text-[10px]">
             Banned
           </Pill>
         ) : user.suspended ? (
-          <Pill tone="orange" className="mt-0.5 px-1.5 py-0 text-[9px]">
+          <Pill tone="orange" className="mt-0.5 px-1.5 py-0 text-[10px]">
             Suspended
           </Pill>
         ) : (
-          <p className="text-[10px] text-[#16a34a]">Active {user.activeOrders} orders</p>
+          <p className="text-[11px] text-[#16a34a]">Active {user.activeOrders} orders</p>
         )}
       </div>
       <HugeiconsIcon icon={ArrowRight01Icon} size={20} strokeWidth={1.5} className="shrink-0 text-[#9ca3af]" />

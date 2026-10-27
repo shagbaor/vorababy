@@ -30,17 +30,17 @@ export default function SupportPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-sm font-medium text-[#1e1e1e]">{user.name}</p>
-                        <span className="shrink-0 rounded bg-[#f3f4f6] px-1.5 py-px text-[9px] font-medium text-[#4b5563]">
+                        <span className="shrink-0 rounded bg-[#f3f4f6] px-1.5 py-px text-[10px] font-medium text-[#4b5563]">
                           {roleLabel[user.role]}
                         </span>
-                        <span className="ml-auto shrink-0 text-[10px] text-[#9ca3af]">{conversation.lastActive}</span>
+                        <span className="ml-auto shrink-0 text-[11px] text-[#9ca3af]">{conversation.lastActive}</span>
                       </div>
                       <div className="mt-1 flex items-center gap-2">
-                        <p className="flex-1 truncate text-[10px] text-[#9ca3af]">
+                        <p className="flex-1 truncate text-[11px] text-[#9ca3af]">
                           {conversation.closed ? 'Conversation closed' : last ? `${last.from === 'admin' ? 'You: ' : ''}${last.text}` : 'No messages yet'}
                         </p>
                         {conversation.unread > 0 && (
-                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#16a34a] text-[10px] font-semibold text-white">
+                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-[#16a34a] text-[11px] font-semibold text-white">
                             {conversation.unread}
                           </span>
                         )}

@@ -59,7 +59,7 @@ export default function AdminLoginPage() {
         <button
           type="button"
           onClick={() => setError({ field: 'email', message: 'Password reset is not available yet. Contact a super admin.' })}
-          className="self-end text-[13px] font-medium text-[#1b1f26]/72 hover:text-[#0f3d2e]"
+          className="self-end text-[14px] font-medium text-[#1b1f26]/72 hover:text-[#0f3d2e]"
         >
           Forgot password?
         </button>
@@ -68,7 +68,7 @@ export default function AdminLoginPage() {
           <PrimaryButton type="submit" disabled={!canSubmit}>
             Sign In
           </PrimaryButton>
-          <p className="text-center text-[13px] font-medium">
+          <p className="text-center text-[14px] font-medium">
             <span className="text-[#1b1f26]/72">New to Vorapicks?</span>{' '}
             <Link href="/admin/signup" className="text-[#0f3d2e] hover:underline">
               Create Account
@@ -81,7 +81,7 @@ export default function AdminLoginPage() {
         <SocialSignIn />
       </div>
 
-      <p className="mt-8 rounded-xl bg-[#f5f6f3] px-3 py-2.5 text-center text-[11px] leading-4 text-black/50">
+      <p className="mt-8 rounded-xl bg-[#f5f6f3] px-3 py-2.5 text-center text-[12px] leading-4 text-black/50">
         Demo login: <span className="font-medium text-black/70">{DEMO_ACCOUNT.email}</span> /{' '}
         <span className="font-medium text-black/70">{DEMO_ACCOUNT.password}</span>
       </p>

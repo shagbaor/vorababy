@@ -59,8 +59,8 @@ export default function AdminSignupPage() {
             <br />
             have been verified
           </p>
-          <p className="text-[10px] text-black/40">You will be redirected to the login page</p>
-          <Link href="/admin/login" className="mt-4 text-[13px] font-medium text-[#0f3d2e] hover:underline">
+          <p className="text-[11px] text-black/40">You will be redirected to the login page</p>
+          <Link href="/admin/login" className="mt-4 text-[14px] font-medium text-[#0f3d2e] hover:underline">
             Go to sign in now
           </Link>
         </div>
@@ -157,7 +157,7 @@ function DetailsStep({
           onChange={(event) => update('password')(event.target.value)}
           state={fieldState('password')}
           hint={
-            <p className={cn('text-[10px]', fieldState('password') === 'error' ? 'text-[#e62b2b]' : 'text-black/40')}>
+            <p className={cn('text-[11px]', fieldState('password') === 'error' ? 'text-[#e62b2b]' : 'text-black/40')}>
               At least 8 characters,{' '}
               {PASSWORD_RULES.map((rule, index) => (
                 <span key={rule.label} className={cn(rule.test(form.password) && 'text-[#2a8d36]')}>
@@ -182,7 +182,7 @@ function DetailsStep({
           <PrimaryButton type="submit" disabled={!allValid}>
             Create Account
           </PrimaryButton>
-          <p className="text-center text-[13px] font-medium">
+          <p className="text-center text-[14px] font-medium">
             <span className="text-[#1b1f26]/72">Already have an account?</span>{' '}
             <Link href="/admin/login" className="text-[#0f3d2e] hover:underline">
               Sign in
@@ -295,14 +295,14 @@ function VerifyStep({ phone, onBack, onVerified }: { phone: string; onBack: () =
               setStatus('idle')
               inputs.current[0]?.focus()
             }}
-            className="text-[13px] font-medium text-[#1b1f26]/72 enabled:hover:text-[#0f3d2e] disabled:cursor-default"
+            className="text-[14px] font-medium text-[#1b1f26]/72 enabled:hover:text-[#0f3d2e] disabled:cursor-default"
           >
             Didn&apos;t receive it? <span className={cn(secondsLeft === 0 && 'text-[#0f3d2e]')}>Resend code</span>
           </button>
           {secondsLeft > 0 && (
-            <p className="text-[10px] text-black/40">Resend available in 00:{String(secondsLeft).padStart(2, '0')}</p>
+            <p className="text-[11px] text-black/40">Resend available in 00:{String(secondsLeft).padStart(2, '0')}</p>
           )}
-          <p className="mt-4 rounded-xl bg-[#f5f6f3] px-3 py-2 text-[11px] text-black/50">
+          <p className="mt-4 rounded-xl bg-[#f5f6f3] px-3 py-2 text-[12px] text-black/50">
             Demo code: <span className="font-medium tracking-widest text-black/70">{DEMO_OTP}</span>
           </p>
         </div>

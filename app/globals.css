@@ -45,6 +45,20 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Site-wide type scale, one step larger than Tailwind's defaults for readability. */
+@theme {
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.625rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.375rem;
+  --text-5xl: 3.25rem;
+  --text-6xl: 4rem;
+}
+
 :root {
   color-scheme: light;
   --background: oklch(1 0 0);

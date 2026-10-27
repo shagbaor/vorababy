@@ -75,11 +75,11 @@ export default function UserProfilePage() {
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <h2 className="truncate text-sm font-semibold leading-[22.4px] tracking-[0.042px] text-[#1e1e1e]">{user.name}</h2>
-                <span className="shrink-0 rounded bg-[#f3f4f6] px-1.5 py-px text-[9px] text-[#4b5563]">{roleLabel[user.role]}</span>
+                <span className="shrink-0 rounded bg-[#f3f4f6] px-1.5 py-px text-[10px] text-[#4b5563]">{roleLabel[user.role]}</span>
               </div>
               <p className="truncate text-xs leading-[18px] tracking-[0.12px] text-[#9ca3af]">{user.email}</p>
               {(user.suspended || user.banned) && (
-                <Pill tone={user.banned ? 'red' : 'orange'} className="mt-0.5 px-1.5 py-0 text-[9px]">
+                <Pill tone={user.banned ? 'red' : 'orange'} className="mt-0.5 px-1.5 py-0 text-[10px]">
                   {user.banned ? 'Banned' : 'Suspended'}
                 </Pill>
               )}

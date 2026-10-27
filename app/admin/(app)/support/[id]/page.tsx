@@ -72,8 +72,8 @@ export default function ConversationPage() {
           <span className="flex items-center gap-2.5">
             <Avatar name={user.name} size={36} shape="circle" />
             <span className="flex flex-col">
-              <span className="text-[15px] font-medium leading-5 tracking-normal text-[#1e1e1e]">{user.name}</span>
-              <span className="text-[10px] font-normal leading-4 tracking-normal text-[#9ca3af]">
+              <span className="text-[16px] font-medium leading-5 tracking-normal text-[#1e1e1e]">{user.name}</span>
+              <span className="text-[11px] font-normal leading-4 tracking-normal text-[#9ca3af]">
                 {conversation.closed ? 'Closed' : 'Online'}
               </span>
             </span>
@@ -94,7 +94,7 @@ export default function ConversationPage() {
       />
 
       <div className="mt-6 flex flex-1 flex-col gap-3">
-        <p className="self-center rounded-full bg-[#f3f4f6] px-3 py-1 text-[10px] font-medium text-[#4b5563]">
+        <p className="self-center rounded-full bg-[#f3f4f6] px-3 py-1 text-[11px] font-medium text-[#4b5563]">
           {conversation.orderId} · Today
         </p>
         {conversation.messages.map((message) => {
@@ -109,7 +109,7 @@ export default function ConversationPage() {
               >
                 {message.text}
               </p>
-              <span className="flex items-center gap-1 text-[10px] text-[#9ca3af]">
+              <span className="flex items-center gap-1 text-[11px] text-[#9ca3af]">
                 {message.time}
                 {mine && <HugeiconsIcon icon={Tick02Icon} size={12} strokeWidth={2} className="text-[#2e8b57]" />}
               </span>
