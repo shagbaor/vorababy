@@ -1,0 +1,16 @@
+{
+  "name": "vorapicks-firebase",
+  "private": true,
+  "scripts": {
+    "emulators": "firebase emulators:start --project demo-vorapicks",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-vorapicks 'vitest run'",
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "firebase": "13.1.0",
+    "firebase-tools": "15.34.1",
+    "vitest": "^5.0.5"
+  },
+  "type": "module"
+}

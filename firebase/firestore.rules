@@ -1,0 +1,139 @@
+rules_version = '2';
+
+// Vorapicks Firestore rules.
+//
+// The app reads and edits only its own everyday data here. Anything that
+// changes a role, an account's status, verification, money or another
+// person's data goes through the server API (app/api), which uses the Admin
+// SDK and is not bound by these rules.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.get('role', '') == 'admin';
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function onlyChanges(fields) {
+      return changedKeys().hasOnly(fields);
+    }
+
+    function isText(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    function isOptionalText(value, max) {
+      return value == null || (value is string && value.size() <= max);
+    }
+
+    // Every client write must stamp updatedAt with the server time.
+    function stampsUpdatedAt() {
+      return request.resource.data.updatedAt == request.time;
+    }
+
+    // ---------------------------------------------------------------- users
+
+    match /users/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+      // Created by POST /api/v1/signup; never deleted from the app.
+      allow create, delete: if false;
+      allow update: if isSelf(uid)
+        && onlyChanges(['fullName', 'photoUrl', 'updatedAt'])
+        && isText(request.resource.data.fullName, 2, 80)
+        && isOptionalText(request.resource.data.photoUrl, 1000)
+        && stampsUpdatedAt();
+
+      match /addresses/{addressId} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && validAddress(request.resource.data);
+      }
+
+      match /devices/{deviceId} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['token', 'platform', 'updatedAt'])
+          && isText(request.resource.data.token, 10, 4096)
+          && request.resource.data.platform in ['android', 'ios', 'web']
+          && stampsUpdatedAt();
+      }
+    }
+
+    function validAddress(data) {
+      return data.keys().hasOnly(['label', 'line', 'area', 'city', 'state', 'location', 'instructions', 'isDefault', 'updatedAt'])
+        && data.keys().hasAll(['label', 'line', 'city', 'location', 'isDefault', 'updatedAt'])
+        && isText(data.label, 1, 40)
+        && isText(data.line, 3, 200)
+        && isOptionalText(data.get('area', null), 80)
+        && isText(data.city, 2, 60)
+        && isOptionalText(data.get('state', null), 60)
+        && data.location is latlng
+        && isOptionalText(data.get('instructions', null), 300)
+        && data.isDefault is bool
+        && stampsUpdatedAt();
+    }
+
+    // --------------------------------------------------------------- stores
+
+    match /stores/{storeId} {
+      // Buyers see approved stores; owners and admins see their own at any stage.
+      allow read: if resource.data.verificationStatus == 'approved'
+        || (signedIn() && resource.data.ownerId == request.auth.uid)
+        || isAdmin();
+      // Created by POST /api/v1/stores so verification can't be skipped.
+      allow create, delete: if false;
+      allow update: if signedIn()
+        && resource.data.ownerId == request.auth.uid
+        && onlyChanges(['description', 'logoUrl', 'coverUrl', 'isOpen', 'openingHours', 'updatedAt'])
+        && isOptionalText(request.resource.data.get('description', null), 600)
+        && isOptionalText(request.resource.data.get('logoUrl', null), 1000)
+        && isOptionalText(request.resource.data.get('coverUrl', null), 1000)
+        && request.resource.data.isOpen is bool
+        && (request.resource.data.get('openingHours', null) == null || request.resource.data.openingHours is map)
+        && stampsUpdatedAt();
+    }
+
+    // --------------------------------------------------------------- riders
+
+    match /riders/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+      // Created by POST /api/v1/riders. An approved rider can go on or offline.
+      allow create, delete: if false;
+      allow update: if isSelf(uid)
+        && resource.data.verificationStatus == 'approved'
+        && onlyChanges(['isOnline', 'updatedAt'])
+        && request.resource.data.isOnline is bool
+        && stampsUpdatedAt();
+    }
+
+    // ------------------------------------------------------ platform data
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /config/{docId} {
+      // Only the public config (fees shown to buyers) is readable by the app.
+      allow read: if docId == 'public' || isAdmin();
+      allow write: if false;
+    }
+
+    match /auditLog/{entryId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Anything not matched above is closed.
+  }
+}
