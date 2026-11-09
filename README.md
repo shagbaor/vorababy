@@ -19,6 +19,7 @@ pnpm dev                     # http://localhost:3000
 | `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` | Service account for the Admin SDK. Server-only. |
 | `FIREBASE_WEB_API_KEY` | Web API key of the project's web app. The server uses it to check admin passwords. |
 | `PAYSTACK_SECRET_KEY` | Paystack secret key (test or live). Server-only: never in the apps. Webhook: `https://<domain>/api/v1/paystack/webhook`. |
+| `DOJAH_APP_ID`, `DOJAH_SECRET_KEY` | Dojah identity checks for sellers and riders (NIN + selfie, CAC, driver's licence). Server-only. `DOJAH_BASE_URL` defaults to the live API; set `https://sandbox.dojah.io` for sandbox keys. |
 | `CRON_SECRET` | Any long random string. Vercel Cron sends it to `/api/v1/cron/run` (daily: auto-release delivered orders after 48 h, expire splits, close old shopping requests). |
 
 ## Admin app (`/admin`)

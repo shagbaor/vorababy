@@ -49,6 +49,11 @@ export type AdminUser = {
   verified: boolean
   // Sellers and riders: incomplete → pending (submitted) → approved / rejected.
   verificationStatus?: 'not_required' | 'incomplete' | 'pending' | 'approved' | 'rejected'
+  // Instant identity checks (Dojah), keyed identity / business / licence.
+  kyc?: Record<string, { status: string; reason: string | null; attempts: number; checkedAt: string | null; details: Record<string, string | number | boolean | null> }>
+  // 'auto': passed every check, approved at autoApproveAt unless an admin acts first.
+  reviewMode?: 'auto' | 'manual' | null
+  autoApproveAt?: string | null
   suspended: boolean
   banned: boolean
 }

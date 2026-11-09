@@ -5,6 +5,7 @@ import { requireUser, type ApiUser } from '@/lib/api/auth'
 import { ApiError, readJson } from '@/lib/api/response'
 import { db } from '@/lib/firebase/admin'
 import type { UserRole } from '@/lib/admin/mock-data'
+import { approveIfDue } from '@/lib/server/kyc'
 
 // Shared checks for /api/v1 handlers: who is calling, which role they have,
 // whether they are allowed to trade, and request body validation.
@@ -38,7 +39,10 @@ export async function requireProfile(request: Request, options: Options = {}): P
   const ref = db().collection('users').doc(user.uid)
   const snapshot = await ref.get()
   if (!snapshot.exists) throw new ApiError('forbidden', 'Finish signing up first (POST /api/v1/me)')
-  const profile = snapshot.data() as ProfileDoc
+  let profile = snapshot.data() as ProfileDoc
+  // Sellers and riders who passed every identity check are approved once
+  // their waiting time is over, on their next request.
+  if (dueForAutoApproval(profile) && (await approveIfDue(user.uid))) profile = (await ref.get()).data() as ProfileDoc
   if (profile.banned || profile.suspended) throw new ApiError('account_disabled', 'This account has been suspended. Contact Vorapicks support.')
   if (options.roles && !options.roles.includes(profile.role)) {
     throw new ApiError('forbidden', `Only ${options.roles.join(' or ')} accounts can do this`)
@@ -49,6 +53,11 @@ export async function requireProfile(request: Request, options: Options = {}): P
     throw new ApiError('forbidden', 'Your account is waiting for verification by Vorapicks')
   }
   return { user, profile, ref }
+}
+
+export function dueForAutoApproval(p: ProfileDoc) {
+  const at = (p.autoApproveAt as { toMillis?: () => number } | null | undefined)?.toMillis?.()
+  return p.verificationStatus === 'pending' && p.reviewMode === 'auto' && at !== undefined && at <= Date.now()
 }
 
 // Parses the JSON body against a zod schema; failures become 422 with a

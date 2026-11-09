@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase/admin'
 import { releaseOrder } from '@/lib/server/orders'
 import { getSettings } from '@/lib/server/settings'
 import { closeSplit } from '@/lib/server/splits'
+import { approveAllDue } from '@/lib/server/kyc'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -25,7 +26,7 @@ export const GET = handle(async (request) => {
   if (!authorised(request)) throw new ApiError('unauthenticated', 'Not allowed')
   const { autoReleaseHours } = await getSettings()
   const now = Date.now()
-  const result = { released: 0, splitsExpired: 0, requestsClosed: 0, errors: 0 }
+  const result = { approved: await approveAllDue(), released: 0, splitsExpired: 0, requestsClosed: 0, errors: 0 }
 
   const delivered = await db().collection('orders').where('status', '==', 'delivered').get()
   for (const d of delivered.docs) {

@@ -17,6 +17,9 @@ export type Settings = {
   minWithdrawalKobo: number
   autoReleaseHours: number
   splitExpiryHours: number
+  autoApproveMinutes: number
+  kycMaxAttempts: number
+  kycFaceMatchThreshold: number
   supportEmail: string
 }
 
@@ -34,6 +37,11 @@ export const DEFAULT_SETTINGS: Settings = {
   minWithdrawalKobo: 50_000,
   autoReleaseHours: 48,
   splitExpiryHours: 24,
+  // Identity checks (Dojah): sellers and riders who pass every check are
+  // approved this long after submitting, unless an admin steps in.
+  autoApproveMinutes: 30,
+  kycMaxAttempts: 3,
+  kycFaceMatchThreshold: 90,
   supportEmail: 'support@vorapicks.com',
 }
 

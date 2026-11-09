@@ -1,7 +1,8 @@
 import 'server-only'
-import type { Timestamp } from 'firebase-admin/firestore'
+import { Timestamp } from 'firebase-admin/firestore'
 import { db } from '@/lib/firebase/admin'
 import { formatDate } from '@/lib/users'
+import { approveAllDue } from '@/lib/server/kyc'
 import type { AdminAccount, AdminUser, Conversation, Dispute, Order } from '@/lib/admin/mock-data'
 
 // Firestore collections behind the admin app. Documents use the same shape as
@@ -115,7 +116,15 @@ function clean(doc: Doc) {
     ...data
   } = doc.data()
   const created = toDate(createdAt)
-  return { data: { ...data, id: doc.id }, created }
+  return { data: { ...(plain(data) as Record<string, unknown>), id: doc.id }, created }
+}
+
+// Any other Timestamps (submittedAt, identity check times…) become ISO strings.
+function plain(value: unknown): unknown {
+  if (value instanceof Timestamp) return value.toDate().toISOString()
+  if (Array.isArray(value)) return value.map(plain)
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, plain(v)]))
+  return value
 }
 
 async function newestFirst(collection: string) {
@@ -129,6 +138,8 @@ async function countActive(role: string) {
 }
 
 export async function loadAdminData({ superAdmin }: { superAdmin: boolean }): Promise<AdminData> {
+  // Sellers and riders whose instant checks passed and whose wait is over.
+  await approveAllDue().catch((error) => console.error('auto-approve', error))
   const now = new Date()
   const today = startOfLagosDay(now)
   const yesterday = new Date(today.getTime() - DAY_MS)

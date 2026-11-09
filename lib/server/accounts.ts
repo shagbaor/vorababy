@@ -1,8 +1,9 @@
 import 'server-only'
 import type { ApiUser } from '@/lib/api/auth'
-import { toIso, type ProfileDoc } from '@/lib/api/guard'
+import { dueForAutoApproval, toIso, type ProfileDoc } from '@/lib/api/guard'
 import { db } from '@/lib/firebase/admin'
 import { isOpenNow } from '@/lib/server/geo'
+import { approveIfDue, kycSatisfied, presentVerification } from '@/lib/server/kyc'
 
 // What GET /me returns, and the checks for submitting a seller or rider for
 // verification. users/{uid} holds the profile; stores/{uid} and riders/{uid}
@@ -63,7 +64,8 @@ export async function presentMe(user: ApiUser) {
   const base = { uid: user.uid, email: user.email, phone: user.phone }
   if (!snapshot.exists) return { ...base, profile: null, store: null, rider: null }
 
-  const p = snapshot.data() as ProfileDoc
+  let p = snapshot.data() as ProfileDoc
+  if (dueForAutoApproval(p) && (await approveIfDue(user.uid))) p = (await snapshot.ref.get()).data() as ProfileDoc
   const [store, rider] = await Promise.all([
     p.role === 'seller' ? db().collection('stores').doc(user.uid).get() : null,
     p.role === 'rider' ? db().collection('riders').doc(user.uid).get() : null,
@@ -82,6 +84,7 @@ export async function presentMe(user: ApiUser) {
       verified: p.verified,
       verificationStatus: verificationStatus(p),
       verificationNote: p.verificationNote ?? null,
+      verification: await presentVerification(p),
       shoppingMode: (p.shoppingMode as string | undefined) ?? 'all',
       notifications: { orderUpdates: true, promotions: true, news: false, sms: true, ...(p.notifications as object | undefined) },
       walletBalanceKobo: p.walletBalanceKobo ?? 0,
@@ -100,14 +103,14 @@ export async function missingForReview(uid: string, p: ProfileDoc) {
   if (p.role === 'seller') {
     const store = await db().collection('stores').doc(uid).get()
     if (!store.exists) missing.store = 'Add your business details'
-    if (!store.get('documents.cacFileId')) missing.cac = 'Upload your CAC document'
-    if (!store.get('documents.ninFileId')) missing.nin = 'Upload your NIN document'
+    if (!kycSatisfied(p, 'business', Boolean(store.get('documents.cacFileId')))) missing.cac = 'Verify your CAC number or upload your CAC document'
+    if (!kycSatisfied(p, 'identity', Boolean(store.get('documents.ninFileId')))) missing.nin = 'Verify your NIN or upload your NIN document'
   } else if (p.role === 'rider') {
     const rider = await db().collection('riders').doc(uid).get()
     if (!rider.get('legalName')) missing.profile = 'Add your personal details'
     if (!rider.get('vehicle')) missing.vehicle = 'Add your vehicle details'
-    if (!rider.get('documents.driversLicenceFileId')) missing.driversLicence = "Upload your driver's licence"
-    if (!rider.get('documents.ninFileId')) missing.nin = 'Upload your NIN document'
+    if (!kycSatisfied(p, 'licence', Boolean(rider.get('documents.driversLicenceFileId')))) missing.driversLicence = "Verify your driver's licence or upload it"
+    if (!kycSatisfied(p, 'identity', Boolean(rider.get('documents.ninFileId')))) missing.nin = 'Verify your NIN and selfie or upload your NIN document'
   }
   return missing
 }

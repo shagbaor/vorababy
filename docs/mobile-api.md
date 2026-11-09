@@ -144,17 +144,18 @@ All sign-in happens in the app with Firebase Authentication; the API never sees 
 ```
 
 - `status`: `active` · `suspended` · `banned` (suspended/banned accounts get `account_disabled` everywhere).
-- `verificationStatus`: buyers `not_required`; sellers and riders `incomplete` (steps not finished) → `pending` (waiting for admin, "You're all set!" screen) → `approved` (can trade) or `rejected` (show `verificationNote` and let them fix and resubmit).
-- Listen to `users/{uid}` to switch screens the moment an admin approves.
+- `verificationStatus`: buyers `not_required`; sellers and riders `incomplete` (steps not finished) → `pending` ("You're all set!" screen) → `approved` (can trade) or `rejected` (show `verificationNote` and let them fix and resubmit).
+- `verification` (sellers and riders): the instant identity checks, see below. While `pending`, `verification.reviewMode` is `auto` (approved automatically at `verification.autoApproveAt`, about 30 minutes after submitting) or `manual` (a person reviews it within 24–48 hours).
+- Listen to `users/{uid}` to switch screens the moment an admin approves. For automatic approval, call `GET /me` once `autoApproveAt` has passed (show a countdown, then refresh; also on app open): the approval is applied on that request.
 
 ### Seller verification (SELLER VIEW → Create account, steps 1–4)
 
 | Step | Endpoint | Status | Body |
 | --- | --- | --- | --- |
 | 1 Tell us about your business | `PUT /seller/store` | ✅ | `{ "name", "ownerLegalName", "type": "farm"\|"restaurant"\|"vendor", "businessType": "Cooperative", "description"?, "phone"?, "address": { "line", "city", "state" }, "location": { "lat", "lng" } }` |
-| 2–3 Verify your business (CAC, NIN) | `PUT /seller/documents` | ✅ | `{ "cacFileId", "ninFileId" }` (upload first, section 2) |
+| 2–3 Verify your business (CAC, NIN) | `POST /me/verification/business` and `POST /me/verification/identity` | ✅ | Instant checks, see *Identity checks* below. Fallback: `PUT /seller/documents` `{ "cacFileId", "ninFileId" }` (upload first, section 2) for a person to review. |
 | 4 Set up your payout account | `PUT /me/payout-account` | ✅ | see Payouts below |
-| Submit ("You're all set!") | `POST /seller/submit` | ✅ | Moves to `pending`; admins review in the admin app |
+| Submit ("You're all set!") | `POST /seller/submit` | ✅ | Moves to `pending`. If every check is verified the message says the account will be approved within 30 minutes; otherwise 24–48 hours. |
 | Edit Business / Contact Information | `PATCH /seller/store` | ✅ | Same fields as step 1, plus `logoFileId`, `coverFileId`, `isOpen`, `openingHours` |
 
 `openingHours`: `{ "mon": { "open": "08:00", "close": "18:00" }, …, "sun": null }` (null = closed). Times are Lagos time.
@@ -164,10 +165,42 @@ All sign-in happens in the app with Firebase Authentication; the API never sees 
 | Step | Endpoint | Status | Body |
 | --- | --- | --- | --- |
 | 1 Your personal details | `PUT /rider/profile` | ✅ | `{ "legalName", "dateOfBirth": "1995-04-12", "address": { "line", "city", "state" } }` |
-| 2–3 Upload your credentials | `PUT /rider/documents` | ✅ | `{ "driversLicenceFileId", "ninFileId" }` |
+| 2–3 Verify your credentials | `POST /me/verification/identity` (NIN + selfie) and `POST /me/verification/drivers-licence` | ✅ | Instant checks, see below. Fallback: `PUT /rider/documents` `{ "driversLicenceFileId", "ninFileId" }`. |
 | 4 Your vehicle details | `PUT /rider/vehicle` | ✅ | `{ "type": "motorcycle"\|"bicycle"\|"car"\|"van", "plateNumber", "color", "makeModel", "year": 2022 }` |
 | 5 Set up your payout account | `PUT /me/payout-account` | ✅ | see below |
-| Submit | `POST /rider/submit` | ✅ | Moves to `pending` |
+| Submit | `POST /rider/submit` | ✅ | Moves to `pending` (30-minute auto approval or 24–48 h review, as for sellers) |
+
+### Identity checks (sellers and riders, powered by Dojah)
+
+Each check answers **straight away**. Order: finish step 1 (business details or personal details) first, because the name and date of birth there are compared with the official records.
+
+| Check | Who | Endpoint | Body |
+| --- | --- | --- | --- |
+| NIN | Sellers | `POST /me/verification/identity` | `{ "nin": "12345678901" }` |
+| NIN + selfie | Riders (selfie required) | `POST /me/verification/identity` | `{ "nin", "selfieImage": "<base64 JPEG, ≤2 MB>" }`: take the selfie with the front camera, face centred, good light |
+| CAC | Sellers | `POST /me/verification/business` | `{ "rcNumber": "RC1234567", "companyType": "COMPANY"\|"BUSINESS_NAME"\|"INCORPORATED_TRUSTEES"\|"LIMITED_PARTNERSHIP"\|"LIMITED_LIABILITY_PARTNERSHIP" }` |
+| Driver's licence | Riders | `POST /me/verification/drivers-licence` | `{ "licenceNumber": "FKJ494A2133" }` |
+| All checks | Both | `GET /me/verification` | Which checks are needed and the state of each |
+
+Every answer (and each item in `GET /me/verification` → `checks[]`):
+
+```json
+{ "check": "identity", "status": "failed", "reason": "face_mismatch",
+  "message": "Your selfie doesn't match the photo on your NIN. Try again in good light, facing the camera.",
+  "attemptsLeft": 2, "checkedAt": "…" }
+```
+
+| `status` | Show | Next |
+| --- | --- | --- |
+| `verified` | Success screen (reuse the green "Your phone number has been verified" design) | Next step |
+| `failed` | Error screen (reuse the red phone-verification error design) with `message` and "Try again (`attemptsLeft` left)" | Let them correct and retry |
+| `review` | "We'll review your details" (no retry): 3 failed attempts, or the NIN/business is already used by another account | Continue; a person reviews after submit |
+| `pending` | Same as `review`: the checking service was busy | Continue, or try again later |
+| `not_started` | — | — |
+
+`reason` values: `nin_not_found`, `name_mismatch`, `dob_mismatch`, `face_mismatch`, `liveness_failed`, `no_nin_photo`, `nin_in_use`, `cac_not_found`, `cac_inactive`, `cac_in_use`, `licence_not_found`, `licence_expired`, `provider_unavailable`. Always show `message`; it is written for the user.
+
+Figma has no screens for typing the NIN / RC number, the selfie, or the result yet: add an input screen per check and reuse the phone verification success and error screens for the result. The document upload screens stay as the fallback.
 
 ### Payouts (sellers and riders)
 
@@ -504,7 +537,8 @@ Before launch (Vorapicks team):
 - **Firebase Storage** must be switched on in the Firebase console; until then `POST /uploads` fails.
 - **Firestore rules** for the live feeds above are published with `pnpm db:rules`.
 - **Paystack:** the webhook URL `https://vorapicks.com/api/v1/paystack/webhook` is set in the Paystack dashboard (test and live). Test with Paystack's test cards first. Card checks charge ₦50, which goes to the buyer's wallet.
-- **Housekeeping** (auto-release after 48 h, expiring splits, closing old shopping requests) runs once a day via Vercel Cron and needs the `CRON_SECRET` environment variable in Vercel.
+- **Dojah** (identity checks): `DOJAH_APP_ID` and `DOJAH_SECRET_KEY` in Vercel (and `DOJAH_BASE_URL=https://sandbox.dojah.io` while testing with sandbox keys). Until then the checks answer `409` and the app should fall back to document upload.
+- **Housekeeping** (auto-approval backstop, auto-release after 48 h, expiring splits, closing old shopping requests) runs once a day via Vercel Cron and needs the `CRON_SECRET` environment variable in Vercel.
 
 ## 16. Open questions (for the business owner)
 

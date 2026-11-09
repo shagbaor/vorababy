@@ -377,6 +377,9 @@ async function syncAuth(action: AdminAction, item: Record<string, unknown>) {
       if (user.role !== 'buyer') {
         const status = user.verificationStatus ?? (user.verified ? 'approved' : 'rejected')
         await db().collection(user.role === 'seller' ? 'stores' : 'riders').doc(action.id).set({ verificationStatus: status }, { merge: true })
+        // An admin decision ends any automatic approval; after a rejection a
+        // person reviews every later submission.
+        await db().collection('users').doc(action.id).update({ reviewMode: 'manual', autoApproveAt: null, ...(status === 'rejected' && { kycManualOnly: true }) })
         await notify(
           action.id,
           'verification',

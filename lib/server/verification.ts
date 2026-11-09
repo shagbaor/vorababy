@@ -1,10 +1,12 @@
 import 'server-only'
-import { FieldValue } from 'firebase-admin/firestore'
+import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { z } from 'zod'
 import { addressFields, latLng, optionalText, text, type Caller } from '@/lib/api/guard'
 import { ApiError } from '@/lib/api/response'
 import { db } from '@/lib/firebase/admin'
 import { missingForReview, verificationStatus } from '@/lib/server/accounts'
+import { allVerified } from '@/lib/server/kyc'
+import { getSettings } from '@/lib/server/settings'
 
 // Seller and rider onboarding: details, documents, then "submit for review".
 // Admins approve in the admin app (Users → Verify User).
@@ -67,9 +69,26 @@ export async function submitForReview(caller: Caller) {
   const missing = await missingForReview(caller.user.uid, caller.profile)
   if (Object.keys(missing).length) throw new ApiError('validation_failed', 'Some steps are not finished yet', missing)
 
+  // Everyone required passed the instant checks (with the names they still
+  // use) → approved automatically after a short wait; otherwise a person reviews.
+  const extra = await db().collection(caller.profile.role === 'seller' ? 'stores' : 'riders').doc(caller.user.uid).get()
+  const legalName = extra.get(caller.profile.role === 'seller' ? 'ownerLegalName' : 'legalName')
+  const kyc = (caller.profile.kyc ?? {}) as Record<string, { details?: { legalName?: string } }>
+  const namesUnchanged = ['identity', 'licence'].every((c) => !kyc[c]?.details?.legalName || kyc[c].details!.legalName === legalName)
+  const auto = allVerified(caller.profile) && namesUnchanged && !caller.profile.kycManualOnly
+  const { autoApproveMinutes } = await getSettings()
+
   const now = FieldValue.serverTimestamp()
   const batch = db().batch()
-  batch.update(caller.ref, { verificationStatus: 'pending', verificationNote: FieldValue.delete(), submittedAt: now, updatedAt: now })
+  batch.update(caller.ref, {
+    verificationStatus: 'pending',
+    verificationNote: FieldValue.delete(),
+    reviewMode: auto ? 'auto' : 'manual',
+    autoApproveAt: auto ? Timestamp.fromMillis(Date.now() + autoApproveMinutes * 60_000) : null,
+    submittedAt: now,
+    updatedAt: now,
+  })
   batch.update(db().collection(caller.profile.role === 'seller' ? 'stores' : 'riders').doc(caller.user.uid), { verificationStatus: 'pending', updatedAt: now })
   await batch.commit()
+  return { auto, autoApproveMinutes }
 }

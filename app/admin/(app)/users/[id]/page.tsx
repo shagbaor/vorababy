@@ -38,7 +38,7 @@ export default function UserProfilePage() {
 
   const actions = [
     {
-      label: user.verified ? 'Remove Verification' : 'Verify User',
+      label: user.verified ? 'Remove Verification' : user.verificationStatus === 'pending' ? 'Approve Verification' : 'Verify User',
       active: user.verified,
       activeClass: 'border-[#16a34a] bg-[#16a34a] text-white',
       onClick: () => {
@@ -46,6 +46,19 @@ export default function UserProfilePage() {
         showToast(user.verified ? `${user.name} is no longer verified.` : `${user.name} is now verified.`)
       },
     },
+    ...(user.role !== 'buyer' && user.verificationStatus === 'pending'
+      ? [
+          {
+            label: 'Reject Verification',
+            active: false,
+            activeClass: '',
+            onClick: () => {
+              dispatch({ type: 'user/setVerified', id: user.id, verified: false })
+              showToast(`${user.name}'s verification was rejected. They can fix their details and submit again.`)
+            },
+          },
+        ]
+      : []),
     {
       label: user.suspended ? 'Lift Suspension' : 'Suspend User',
       active: user.suspended,
@@ -109,6 +122,8 @@ export default function UserProfilePage() {
             </div>
           ))}
         </dl>
+
+        {user.role !== 'buyer' && <IdentityChecks user={user} />}
 
         <section className="flex flex-col gap-3">
           <h2 className="text-base font-semibold leading-6 tracking-[-0.24px] text-[#202020]">Admin Actions</h2>
@@ -200,5 +215,97 @@ function EditUserSheet({
         Cancel
       </SheetButton>
     </BottomSheet>
+  )
+}
+
+const CHECKS: Record<string, { label: string; roles: AdminUser['role'][] }> = {
+  identity: { label: 'NIN', roles: ['seller', 'rider'] },
+  business: { label: 'CAC registration', roles: ['seller'] },
+  licence: { label: "Driver's licence", roles: ['rider'] },
+}
+
+const CHECK_TONES = { verified: 'green', failed: 'red', review: 'orange', pending: 'orange', not_started: 'grey' } as const
+const CHECK_LABELS = { verified: 'Verified', failed: 'Failed', review: 'Needs review', pending: 'Needs review', not_started: 'Not checked' } as const
+
+const DETAIL_LABELS: Record<string, string> = {
+  legalName: 'Name given',
+  firstName: 'First name on record',
+  middleName: 'Middle name on record',
+  lastName: 'Last name on record',
+  dateOfBirth: 'Date of birth',
+  ninLast4: 'NIN (last 4)',
+  faceConfidence: 'Selfie match %',
+  liveness: 'Liveness score',
+  rcNumber: 'RC / BN number',
+  companyName: 'Registered name',
+  companyStatus: 'CAC status',
+  companyType: 'Business type',
+  licenceLast4: 'Licence (last 4)',
+  expiryDate: 'Licence expiry',
+}
+
+const REASON_LABELS: Record<string, string> = {
+  nin_not_found: 'NIN not found',
+  name_mismatch: "Name doesn't match",
+  dob_mismatch: "Date of birth doesn't match",
+  face_mismatch: "Selfie doesn't match NIN photo",
+  liveness_failed: 'Selfie failed liveness check',
+  no_nin_photo: 'No NIN photo to compare',
+  nin_in_use: 'NIN already used by another account',
+  cac_in_use: 'Business already used by another account',
+  cac_not_found: 'Business not found',
+  cac_inactive: 'Business not active',
+  licence_not_found: 'Licence not found',
+  licence_expired: 'Licence expired',
+  provider_unavailable: 'Dojah was unavailable',
+}
+
+// Results of the instant identity checks (Dojah) and when the account is
+// approved automatically, so admins can step in first.
+function IdentityChecks({ user }: { user: AdminUser }) {
+  const checks = Object.entries(CHECKS).filter(([, c]) => c.roles.includes(user.role))
+  const autoAt = user.verificationStatus === 'pending' && user.reviewMode === 'auto' && user.autoApproveAt ? new Date(user.autoApproveAt) : null
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-base font-semibold leading-6 tracking-[-0.24px] text-[#202020]">Identity Checks</h2>
+      {autoAt && (
+        <p className="rounded-2xl bg-[#dbeafe] px-[15px] py-3 text-xs leading-[18px] text-[#1d4ed8]">
+          Passed every check. Approved automatically at{' '}
+          {autoAt.toLocaleTimeString('en-NG', { hour: 'numeric', minute: '2-digit', timeZone: 'Africa/Lagos' })} unless you approve or reject first.
+        </p>
+      )}
+      {user.verificationStatus === 'pending' && user.reviewMode === 'manual' && (
+        <p className="rounded-2xl bg-[#ffedd5] px-[15px] py-3 text-xs leading-[18px] text-[#c2410c]">Waiting for an admin: some checks did not pass or could not run.</p>
+      )}
+      <div className="flex flex-col gap-1">
+        {checks.map(([key, { label }]) => {
+          const check = user.kyc?.[key]
+          const status = (check?.status ?? 'not_started') as keyof typeof CHECK_TONES
+          const details = Object.entries(check?.details ?? {}).filter(([, v]) => v !== null && v !== '')
+          return (
+            <div key={key} className="rounded-2xl border border-[#f0f0f0]/60 bg-white px-[15px] py-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-[#202020]">{label}</span>
+                <Pill tone={CHECK_TONES[status] ?? 'grey'} className="px-1.5 py-0 text-[10px]">
+                  {CHECK_LABELS[status] ?? status}
+                </Pill>
+              </div>
+              {check?.reason && <p className="mt-1 text-xs text-[#dc2626]">{REASON_LABELS[check.reason] ?? check.reason}</p>}
+              {check && <p className="mt-1 text-[11px] text-[#9ca3af]">Attempts: {check.attempts}</p>}
+              {details.length > 0 && (
+                <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+                  {details.map(([k, v]) => (
+                    <div key={k} className="contents">
+                      <dt className="text-[#9ca3af]">{DETAIL_LABELS[k] ?? k}</dt>
+                      <dd className="truncate text-[#202020]">{String(v)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </section>
   )
 }
