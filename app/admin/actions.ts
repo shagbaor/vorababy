@@ -5,7 +5,9 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { adminAuth, db, webApiKey } from '@/lib/firebase/admin'
 import { getAdminSession } from '@/lib/admin/session'
 import { allowAttempt } from '@/lib/admin/rate-limit'
-import { COLLECTIONS, DEFAULT_COMMISSION_RATE } from '@/lib/admin/data'
+import { COLLECTIONS, DEFAULT_COMMISSION_RATE, isAppOrder } from '@/lib/admin/data'
+import { refundOrder, releaseOrder } from '@/lib/server/orders'
+import { ApiError } from '@/lib/api/response'
 import { EMAIL_PATTERN, passwordValid, SESSION_COOKIE, SESSION_MAX_AGE } from '@/lib/admin/auth'
 import { applyAction, collectionFor, MAX_MESSAGE_LENGTH, type AdminAction } from '@/lib/admin/admin-actions'
 import type { AdminAccount, AdminUser } from '@/lib/admin/mock-data'
@@ -286,6 +288,10 @@ export async function applyAdminAction(action: AdminAction): Promise<ActionResul
     if (profile.ok) action = { ...action, ...profile.value }
   }
 
+  // Real orders from the apps move real money: settle them through escrow.
+  const settled = await settleAppOrder(action, session.uid)
+  if (settled) return settled
+
   const ref = db().collection(COLLECTIONS[collectionFor(action)]).doc(action.id)
   const commissionRate =
     action.type === 'order/release'
@@ -317,6 +323,36 @@ export async function applyAdminAction(action: AdminAction): Promise<ActionResul
   if (result === 'last-super') return { ok: false, error: 'At least one super admin must remain.' }
 
   await syncAuth(action, result)
+  return { ok: true }
+}
+
+async function settleAppOrder(action: AdminAction, adminUid: string): Promise<ActionResult | null> {
+  let orderId: string | null = null
+  let outcome: 'release' | 'refund' | null = null
+  if (action.type === 'order/release' || action.type === 'order/refund') {
+    orderId = action.id
+    outcome = action.type === 'order/release' ? 'release' : 'refund'
+  } else if (action.type === 'dispute/resolve') {
+    const dispute = await db().collection(COLLECTIONS.disputes).doc(action.id).get()
+    orderId = (dispute.get('orderId') as string | undefined) ?? null
+    outcome = action.resolution === 'released' ? 'release' : 'refund'
+  }
+  if (!orderId || !outcome) return null
+  const order = await db().collection(COLLECTIONS.orders).doc(orderId).get()
+  if (!order.exists || !isAppOrder(order)) return null
+
+  try {
+    if (order.get('escrowStatus') === 'held') {
+      if (outcome === 'release') await releaseOrder(orderId, { uid: adminUid, role: 'admin' })
+      else await refundOrder(orderId, { uid: adminUid, role: 'admin' }, 'Refunded by Vorapicks support.')
+    }
+  } catch (error) {
+    if (error instanceof ApiError) return { ok: false, error: error.message }
+    throw error
+  }
+  if (action.type === 'dispute/resolve') {
+    await db().collection(COLLECTIONS.disputes).doc(action.id).update({ status: 'resolved', resolution: action.resolution, resolvedBy: adminUid, updatedAt: FieldValue.serverTimestamp() })
+  }
   return { ok: true }
 }
 

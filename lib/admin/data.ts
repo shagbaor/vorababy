@@ -54,6 +54,22 @@ export type AdminData = {
 
 type Doc = FirebaseFirestore.QueryDocumentSnapshot
 
+// Orders placed through the mobile API (lib/server/orders.ts) carry totalKobo;
+// the older sample orders keep escrow state in `status`.
+export const isAppOrder = (doc: FirebaseFirestore.DocumentSnapshot) => typeof doc.get('totalKobo') === 'number'
+
+const PROGRESS: Record<string, Order['progress']> = {
+  placed: 'New',
+  confirmed: 'In Progress',
+  preparing: 'In Progress',
+  ready_for_pickup: 'In Progress',
+  out_for_delivery: 'In Delivery',
+  delivered: 'Delivered',
+  completed: 'Delivered',
+  cancelled: 'Delivered',
+  disputed: 'In Delivery',
+}
+
 // Lagos is UTC+1 all year (no daylight saving).
 const LAGOS_OFFSET_MS = 60 * 60 * 1000
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -132,7 +148,19 @@ export async function loadAdminData({ superAdmin }: { superAdmin: boolean }): Pr
 
   const orders = orderDocs.map((doc) => {
     const { data, created } = clean(doc)
-    return { ...data, placedAt: created ? formatPlacedAt(created) : '' } as Order
+    const placedAt = created ? formatPlacedAt(created) : ''
+    if (!isAppOrder(doc)) return { ...data, placedAt } as Order
+    // Orders from the mobile apps: lifecycle in `status`, money in `escrowStatus`.
+    const status = doc.get('status') as string
+    return {
+      id: doc.id,
+      placedAt,
+      items: doc.get('itemCount'),
+      progress: PROGRESS[status] ?? 'New',
+      amount: doc.get('totalKobo') / 100,
+      status: status === 'disputed' ? 'disputed' : (doc.get('escrowStatus') as Order['status']),
+      flagged: Boolean(doc.get('flagged')),
+    } satisfies Order
   })
   const disputes = disputeDocs.map((doc) => {
     const { data, created } = clean(doc)
@@ -159,7 +187,8 @@ export async function loadAdminData({ superAdmin }: { superAdmin: boolean }): Pr
     earnings = { today: 0, thisWeek: 0, allTime: 0, byDay }
     for (const doc of orderDocs) {
       const releasedAt = toDate(doc.get('releasedAt'))
-      if (doc.get('status') !== 'released' || !releasedAt) continue
+      const released = isAppOrder(doc) ? doc.get('escrowStatus') === 'released' : doc.get('status') === 'released'
+      if (!released || !releasedAt) continue
       const fee = (doc.get('platformFee') as number | undefined) ?? Math.round((doc.get('amount') as number) * commissionRate)
       earnings.allTime += fee
       if (releasedAt >= weekStart) {
@@ -184,7 +213,9 @@ export async function loadAdminData({ superAdmin }: { superAdmin: boolean }): Pr
       ordersToday: createdBetween(orderDocs, today),
       ordersYesterday: createdBetween(orderDocs, yesterday, today),
       disputesOpenedToday: createdBetween(disputeDocs, today),
-      escrowHeld: orderDocs.filter((doc) => doc.get('status') === 'held' || doc.get('status') === 'disputed').reduce((sum, doc) => sum + ((doc.get('amount') as number) ?? 0), 0),
+      escrowHeld: orderDocs
+        .filter((doc) => (isAppOrder(doc) ? doc.get('escrowStatus') === 'held' : doc.get('status') === 'held' || doc.get('status') === 'disputed'))
+        .reduce((sum, doc) => sum + ((doc.get('amount') as number) ?? 0), 0),
       earnings,
     },
   }

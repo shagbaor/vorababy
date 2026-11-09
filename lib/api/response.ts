@@ -17,6 +17,7 @@ export type ApiErrorCode =
   | 'not_found'
   | 'method_not_allowed'
   | 'conflict'
+  | 'payment_required'
   | 'rate_limited'
   | 'internal_error'
 
@@ -29,6 +30,7 @@ const STATUS: Record<ApiErrorCode, number> = {
   not_found: 404,
   method_not_allowed: 405,
   conflict: 409,
+  payment_required: 402,
   rate_limited: 429,
   internal_error: 500,
 }
