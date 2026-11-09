@@ -92,7 +92,7 @@ export async function loadAdminData(): Promise<AdminData> {
     disputes,
     conversations,
     users: users.map(({ data, created }) => ({ totalOrders: 0, activeOrders: 0, location: '', phone: '', ...data, joined: created }) as AdminUser),
-    admins: admins.map(({ data, created }) => ({ phone: '', ...data, requested: created }) as AdminAccount),
+    admins: admins.map(({ data, created }) => ({ phone: '', role: 'admin', ...data, requested: created }) as AdminAccount),
     // User counts are live; the order and revenue figures stay in meta/dashboard
     // until orders are real.
     dashboard: {

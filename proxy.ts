@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { SESSION_COOKIE } from '@/lib/admin/auth'
 
-const PUBLIC_ADMIN_PATHS = ['/admin/login', '/admin/signup']
+const PUBLIC_ADMIN_PATHS = ['/admin/login', '/admin/signup', '/admin/forgot-password']
 
 // Sends visitors without a session cookie to the admin login page. This is only
 // a fast first check: the (app) layout verifies the Firebase session cookie and

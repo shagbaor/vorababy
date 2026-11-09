@@ -52,8 +52,10 @@ export type AdminUser = {
 }
 
 // A person with access to this admin app (Firestore admins/{uid}). Created as
-// 'pending' by the sign-up page; another admin approves or rejects it.
+// 'pending' by the sign-up page; a super admin approves or rejects it. Super
+// admins also manage the team; regular admins run the marketplace.
 export type AdminAccountStatus = 'pending' | 'active' | 'rejected' | 'revoked'
+export type AdminRole = 'admin' | 'super'
 
 export type AdminAccount = {
   id: string
@@ -61,6 +63,7 @@ export type AdminAccount = {
   email: string
   phone: string
   status: AdminAccountStatus
+  role: AdminRole
   requested: string
 }
 

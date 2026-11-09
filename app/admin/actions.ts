@@ -1,9 +1,10 @@
 'use server'
 
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { FieldValue } from 'firebase-admin/firestore'
 import { adminAuth, db, webApiKey } from '@/lib/firebase/admin'
 import { getAdminSession } from '@/lib/admin/session'
+import { allowAttempt } from '@/lib/admin/rate-limit'
 import { COLLECTIONS } from '@/lib/admin/data'
 import { EMAIL_PATTERN, passwordValid, SESSION_COOKIE, SESSION_MAX_AGE } from '@/lib/admin/auth'
 import { applyAction, collectionFor, MAX_MESSAGE_LENGTH, type AdminAction } from '@/lib/admin/admin-actions'
@@ -52,8 +53,8 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 // everyone else learns where their account stands.
 async function startSession(idToken: string): Promise<SignInResult> {
   const token = await adminAuth().verifyIdToken(idToken)
-  if (token.admin !== true) {
-    const status = (await db().collection(COLLECTIONS.admins).doc(token.uid).get()).get('status')
+  const status = (await db().collection(COLLECTIONS.admins).doc(token.uid).get()).get('status')
+  if (status !== 'active') {
     const message =
       status === 'pending'
         ? 'Your account is waiting for approval by a Vorapicks admin.'
@@ -93,7 +94,9 @@ export async function signInWithGoogle(idToken: string): Promise<GoogleSignInRes
   if (token.firebase.sign_in_provider !== 'google.com') return { ok: false, message: 'Google sign-in failed. Try again.' }
 
   const ref = db().collection(COLLECTIONS.admins).doc(token.uid)
-  if (token.admin !== true && !(await ref.get()).exists) {
+  if (!(await ref.get()).exists) {
+    const refused = await requestQuota()
+    if (refused) return { ok: false, message: refused }
     const fullName = (token.name as string | undefined)?.trim() || token.email?.split('@')[0] || 'New admin'
     await ref.create({
       fullName,
@@ -101,6 +104,7 @@ export async function signInWithGoogle(idToken: string): Promise<GoogleSignInRes
       phone: '',
       provider: 'google',
       status: 'pending',
+      role: 'admin',
       createdAt: FieldValue.serverTimestamp(),
     })
     return {
@@ -122,8 +126,21 @@ export async function signOut() {
 
 // ---------------------------------------------------------------------------
 // Sign up: creates the Firebase user and a pending admins/{uid} record. The
-// account cannot sign in until scripts/approve-admin.mjs grants the claim.
+// account cannot sign in until a super admin approves it.
 // ---------------------------------------------------------------------------
+
+const MAX_PENDING_REQUESTS = 25
+
+// Limits new admin requests (sign-up form and first-time Google sign-in) to a
+// few per network per hour, and the queue to MAX_PENDING_REQUESTS.
+async function requestQuota(): Promise<string | null> {
+  if (!(await allowAttempt('admin-request', 5, 60))) return 'Too many sign-up attempts from this network. Try again in an hour.'
+  const pending = (await db().collection(COLLECTIONS.admins).where('status', '==', 'pending').count().get()).data().count
+  if (pending >= MAX_PENDING_REQUESTS) {
+    return 'Too many sign-up requests are waiting right now. Try again later or contact a Vorapicks admin.'
+  }
+  return null
+}
 
 export type SignUpInput = { fullName: string; email: string; phone: string; password: string }
 export type SignUpResult = { ok: true } | FieldError<'fullName' | 'email' | 'phone' | 'password'>
@@ -139,6 +156,9 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
   if (phoneDigits.length !== 10) return { ok: false, field: 'phone', message: 'Enter a valid phone number' }
   if (!passwordValid(password) || password.length > 128) return { ok: false, field: 'password', message: 'Choose a stronger password' }
 
+  const refused = await requestQuota()
+  if (refused) return { ok: false, field: 'email', message: refused }
+
   const phoneNumber = `+234${phoneDigits}`
   try {
     const user = await adminAuth().createUser({ email, password, displayName: fullName, phoneNumber })
@@ -147,6 +167,7 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
       email,
       phone: phoneNumber,
       status: 'pending',
+      role: 'admin',
       createdAt: FieldValue.serverTimestamp(),
     })
     return { ok: true }
@@ -157,6 +178,46 @@ export async function signUp(input: SignUpInput): Promise<SignUpResult> {
     if (code === 'auth/invalid-phone-number') return { ok: false, field: 'phone', message: 'Enter a valid phone number' }
     throw error
   }
+}
+
+// ---------------------------------------------------------------------------
+// Password reset: Firebase emails a reset link. The reply is the same whether
+// or not the email has an account, so the form cannot be used to find accounts.
+// ---------------------------------------------------------------------------
+
+const RESET_RETURN_HOSTS = ['vorapicks.com', 'www.vorapicks.com', 'vorababy.vercel.app', 'localhost']
+
+export type ResetResult = { ok: true } | { ok: false; message: string }
+
+export async function requestPasswordReset(email: string): Promise<ResetResult> {
+  const address = String(email ?? '').trim().toLowerCase()
+  if (!EMAIL_PATTERN.test(address) || address.length > 254) return { ok: false, message: 'Enter a valid email address' }
+  if (!(await allowAttempt('password-reset', 5, 60))) {
+    return { ok: false, message: 'Too many reset requests from this network. Try again in an hour.' }
+  }
+
+  // After resetting, Firebase's page links back to our login when the host is
+  // one Firebase allows.
+  const host = (await headers()).get('host')?.split(':')[0] ?? ''
+  const continueUrl = RESET_RETURN_HOSTS.includes(host)
+    ? `${host === 'localhost' ? 'http' : 'https'}://${(await headers()).get('host')}/admin/login`
+    : undefined
+
+  const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${webApiKey()}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: address, ...(continueUrl && { continueUrl }) }),
+    cache: 'no-store',
+  })
+  if (!response.ok) {
+    const code = ((await response.json()) as { error?: { message?: string } }).error?.message ?? ''
+    // Unknown emails are reported as sent; anything else is a real failure.
+    if (!code.startsWith('EMAIL_NOT_FOUND')) {
+      console.error(`Password reset failed: ${code}`)
+      return { ok: false, message: 'Could not send the reset email. Try again later.' }
+    }
+  }
+  return { ok: true }
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +242,7 @@ const ACTION_TYPES = new Set<AdminAction['type']>([
   'admin/approve',
   'admin/reject',
   'admin/revoke',
+  'admin/setSuper',
 ])
 
 function validAction(action: AdminAction): string | null {
@@ -189,7 +251,13 @@ function validAction(action: AdminAction): string | null {
   if (action.type === 'dispute/resolve' && action.resolution !== 'refunded' && action.resolution !== 'released') {
     return 'Invalid resolution'
   }
-  const flag = { 'order/setFlagged': 'flagged', 'user/setVerified': 'verified', 'user/setSuspended': 'suspended', 'user/setBanned': 'banned' }[
+  const flag = {
+    'order/setFlagged': 'flagged',
+    'user/setVerified': 'verified',
+    'user/setSuspended': 'suspended',
+    'user/setBanned': 'banned',
+    'admin/setSuper': 'superAdmin',
+  }[
     action.type as string
   ]
   if (flag && typeof (action as Record<string, unknown>)[flag] !== 'boolean') return 'Invalid value'
@@ -208,8 +276,9 @@ export async function applyAdminAction(action: AdminAction): Promise<ActionResul
 
   const invalid = validAction(action)
   if (invalid) return { ok: false, error: invalid }
-  if (action.type.startsWith('admin/') && action.type !== 'admin/approve' && action.id === session.uid) {
-    return { ok: false, error: 'You cannot remove your own access.' }
+  if (action.type.startsWith('admin/')) {
+    if (!session.superAdmin) return { ok: false, error: 'Only super admins can manage the admin team.' }
+    if (action.type !== 'admin/approve' && action.id === session.uid) return { ok: false, error: 'You cannot change your own access.' }
   }
   if (action.type === 'user/update') {
     const profile = validateProfile(action)
@@ -221,10 +290,18 @@ export async function applyAdminAction(action: AdminAction): Promise<ActionResul
     const snapshot = await transaction.get(ref)
     if (!snapshot.exists) return null
     const { id, ...next } = applyAction({ ...snapshot.data(), id: snapshot.id }, action)
+    // Never leave the team without an active super admin.
+    if (snapshot.get('role') === 'super' && snapshot.get('status') === 'active' && ((next as Record<string, unknown>).role !== 'super' || (next as Record<string, unknown>).status !== 'active')) {
+      const supers = await transaction.get(
+        db().collection(COLLECTIONS.admins).where('status', '==', 'active').where('role', '==', 'super').count(),
+      )
+      if (supers.data().count <= 1) return 'last-super' as const
+    }
     transaction.set(ref, { ...next, updatedAt: FieldValue.serverTimestamp(), updatedBy: session.uid })
     return { ...next, id }
   })
   if (!result) return { ok: false, error: 'Not found' }
+  if (result === 'last-super') return { ok: false, error: 'At least one super admin must remain.' }
 
   await syncAuth(action, result)
   return { ok: true }
@@ -244,9 +321,10 @@ async function syncAuth(action: AdminAction, item: Record<string, unknown>) {
     } else if (action.type === 'user/update') {
       await auth.updateUser(action.id, { displayName: action.name })
     } else if (action.type.startsWith('admin/')) {
-      const admin = (item as unknown as AdminAccount).status === 'active'
+      const account = item as unknown as AdminAccount
+      const admin = account.status === 'active'
       const { customClaims } = await auth.getUser(action.id)
-      await auth.setCustomUserClaims(action.id, { ...customClaims, admin })
+      await auth.setCustomUserClaims(action.id, { ...customClaims, admin, superAdmin: admin && account.role === 'super' })
       if (!admin) await auth.revokeRefreshTokens(action.id)
     }
   } catch (error) {

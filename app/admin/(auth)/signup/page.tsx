@@ -1,14 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowLeft02Icon, CheckmarkBadge01Icon } from '@hugeicons/core-free-icons'
+import { CheckmarkBadge01Icon } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
 import {
   AuthHeading,
-  AuthTitle,
   FieldHint,
   PasswordField,
   PhoneField,
@@ -18,54 +16,30 @@ import {
   type FieldState,
 } from '@/components/admin/auth-fields'
 import { signUp, type SignUpResult } from '@/app/admin/actions'
-import { DEMO_OTP, EMAIL_PATTERN, maskPhone, PASSWORD_RULES, passwordValid } from '@/lib/admin/auth'
-
-type Step = 'details' | 'verify' | 'verified'
-
-const RESEND_SECONDS = 45
+import { EMAIL_PATTERN, PASSWORD_RULES, passwordValid } from '@/lib/admin/auth'
 
 export default function AdminSignupPage() {
-  const router = useRouter()
-  const [step, setStep] = useState<Step>('details')
+  const [requested, setRequested] = useState(false)
   const [form, setForm] = useState({ fullName: '', email: '', phone: '', password: '', confirm: '' })
 
-  useEffect(() => {
-    if (step !== 'verified') return
-    const timer = window.setTimeout(() => router.replace('/admin/login'), 2500)
-    return () => window.clearTimeout(timer)
-  }, [step, router])
-
-  if (step === 'verify') {
-    return (
-      <VerifyStep
-        phone={form.phone}
-        onBack={() => setStep('details')}
-        onVerified={() => setStep('verified')}
-      />
-    )
-  }
-
-  if (step === 'verified') {
+  if (requested) {
     return (
       <main className="flex min-h-dvh flex-col">
-        <h1 className="pt-[71px] text-base font-medium text-[#1e1e1e]">Verify Phone</h1>
         <div className="flex flex-1 flex-col items-center justify-center gap-3 pb-24 text-center">
           <HugeiconsIcon icon={CheckmarkBadge01Icon} size={56} strokeWidth={1.5} className="text-[#2a8d36]" />
-          <p className="text-xl font-medium text-[#1e1e1e]">
-            Your Phone number
-            <br />
-            have been verified
+          <p className="text-xl font-medium text-[#1e1e1e]">Request sent</p>
+          <p className="max-w-[280px] text-[13px] text-black/50">
+            A Vorapicks super admin will review your account. Once it&apos;s approved, sign in with {form.email.trim()}.
           </p>
-          <p className="text-[11px] text-black/40">You can sign in once a Vorapicks admin approves your account</p>
           <Link href="/admin/login" className="mt-4 text-[14px] font-medium text-[#0f3d2e] hover:underline">
-            Go to sign in now
+            Go to sign in
           </Link>
         </div>
       </main>
     )
   }
 
-  return <DetailsStep form={form} setForm={setForm} onCreated={() => setStep('verify')} />
+  return <DetailsStep form={form} setForm={setForm} onCreated={() => setRequested(true)} />
 }
 
 function DetailsStep({
@@ -212,119 +186,6 @@ function DetailsStep({
       <div className="mt-3">
         <SocialSignIn />
       </div>
-    </main>
-  )
-}
-
-function VerifyStep({ phone, onBack, onVerified }: { phone: string; onBack: () => void; onVerified: () => void }) {
-  const [digits, setDigits] = useState(['', '', '', ''])
-  const [status, setStatus] = useState<'idle' | 'error' | 'success'>('idle')
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS)
-  const inputs = useRef<(HTMLInputElement | null)[]>([])
-
-  useEffect(() => {
-    inputs.current[0]?.focus()
-  }, [])
-
-  useEffect(() => {
-    if (secondsLeft <= 0) return
-    const timer = window.setTimeout(() => setSecondsLeft((s) => s - 1), 1000)
-    return () => window.clearTimeout(timer)
-  }, [secondsLeft])
-
-  const code = digits.join('')
-  const complete = code.length === 4
-
-  function setDigit(index: number, value: string) {
-    const clean = value.replace(/\D/g, '')
-    setStatus('idle')
-    if (clean.length > 1) {
-      // Pasted code: spread it across the boxes.
-      const next = clean.slice(0, 4).split('')
-      setDigits([0, 1, 2, 3].map((i) => next[i] ?? ''))
-      inputs.current[Math.min(next.length, 3)]?.focus()
-      return
-    }
-    setDigits((prev) => prev.map((d, i) => (i === index ? clean : d)))
-    if (clean && index < 3) inputs.current[index + 1]?.focus()
-  }
-
-  function handleVerify(event: React.FormEvent) {
-    event.preventDefault()
-    if (!complete) return
-    if (code === DEMO_OTP) {
-      setStatus('success')
-      window.setTimeout(onVerified, 600)
-    } else {
-      setStatus('error')
-    }
-  }
-
-  return (
-    <main>
-      <div className="pt-[47px]">
-        <button type="button" onClick={onBack} aria-label="Back" className="-m-1 rounded-full p-1 text-[#292929] hover:bg-gray-100">
-          <HugeiconsIcon icon={ArrowLeft02Icon} size={24} strokeWidth={1.5} />
-        </button>
-      </div>
-
-      <form onSubmit={handleVerify} className="mt-[76px] flex flex-col items-center gap-[22px]">
-        <div className="flex w-[275px] flex-col items-center gap-[25px]">
-          <AuthTitle title="Verify Your Number" subtitle={`We sent a 4-digit code to ${maskPhone(phone)}`} centered />
-          <div className="flex gap-4" role="group" aria-label="Verification code">
-            {digits.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => {
-                  inputs.current[index] = el
-                }}
-                value={digit}
-                onChange={(event) => setDigit(index, event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Backspace' && !digit && index > 0) inputs.current[index - 1]?.focus()
-                }}
-                inputMode="numeric"
-                autoComplete={index === 0 ? 'one-time-code' : 'off'}
-                maxLength={4}
-                aria-label={`Digit ${index + 1}`}
-                className={cn(
-                  'size-9 rounded-[3px] border text-center text-xs tracking-[0.5px] text-black/87 outline-none transition-colors',
-                  status === 'success' && 'border-[#2a8d36] bg-[#2f9d3c]/10',
-                  status === 'error' && 'border-[#e62b2b] bg-[#ff3030]/10 text-[#e62b2b]',
-                  status === 'idle' && 'border-[#d9d9d9] bg-[#f5f6f3] focus:border-[#0f3d2e]',
-                )}
-              />
-            ))}
-          </div>
-          {status === 'error' && <FieldHint tone="error">That code is incorrect. Try again.</FieldHint>}
-        </div>
-
-        <PrimaryButton type="submit" disabled={!complete || status === 'success'}>
-          Verify
-        </PrimaryButton>
-
-        <div className="flex flex-col items-center gap-3 text-center">
-          <button
-            type="button"
-            disabled={secondsLeft > 0}
-            onClick={() => {
-              setSecondsLeft(RESEND_SECONDS)
-              setDigits(['', '', '', ''])
-              setStatus('idle')
-              inputs.current[0]?.focus()
-            }}
-            className="text-[14px] font-medium text-[#1b1f26]/72 enabled:hover:text-[#0f3d2e] disabled:cursor-default"
-          >
-            Didn&apos;t receive it? <span className={cn(secondsLeft === 0 && 'text-[#0f3d2e]')}>Resend code</span>
-          </button>
-          {secondsLeft > 0 && (
-            <p className="text-[11px] text-black/40">Resend available in 00:{String(secondsLeft).padStart(2, '0')}</p>
-          )}
-          <p className="mt-4 rounded-xl bg-[#f5f6f3] px-3 py-2 text-[12px] text-black/50">
-            Demo code: <span className="font-medium tracking-widest text-black/70">{DEMO_OTP}</span>
-          </p>
-        </div>
-      </form>
     </main>
   )
 }

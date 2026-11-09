@@ -4,9 +4,6 @@
 export const SESSION_COOKIE = 'vp_admin_session'
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7
 
-// Shown on the verify screen while there is no SMS provider.
-export const DEMO_OTP = '2314'
-
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export const PASSWORD_RULES = [
@@ -17,11 +14,6 @@ export const PASSWORD_RULES = [
 
 export function passwordValid(value: string) {
   return value.length >= 8 && PASSWORD_RULES.every((rule) => rule.test(value))
-}
-
-export function maskPhone(phone: string) {
-  const digits = phone.replace(/\D/g, '')
-  return `+234 *** *** ${digits.slice(-4)}`
 }
 
 export function initials(name: string) {

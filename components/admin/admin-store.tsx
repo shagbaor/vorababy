@@ -23,7 +23,7 @@ function reducer(state: AdminState, action: InternalAction): AdminState {
 }
 
 type AdminStore = AdminState & {
-  profile: Pick<AdminSession, 'uid' | 'name' | 'initials'>
+  profile: Pick<AdminSession, 'uid' | 'name' | 'initials' | 'superAdmin'>
   dashboard: DashboardMetrics
   dispatch: (action: StoreAction) => void
 }
@@ -37,7 +37,7 @@ export function AdminStoreProvider({
   children,
 }: {
   initialState: AdminState
-  profile: Pick<AdminSession, 'uid' | 'name' | 'initials'>
+  profile: Pick<AdminSession, 'uid' | 'name' | 'initials' | 'superAdmin'>
   dashboard: DashboardMetrics
   children: React.ReactNode
 }) {

@@ -22,6 +22,7 @@ export type AdminAction =
   | { type: 'admin/approve'; id: string }
   | { type: 'admin/reject'; id: string }
   | { type: 'admin/revoke'; id: string }
+  | { type: 'admin/setSuper'; id: string; superAdmin: boolean }
 
 export type AdminState = {
   orders: Order[]
@@ -112,7 +113,9 @@ function applyToAdmin(a: AdminAccount, action: AdminAction): AdminAccount {
     case 'admin/reject':
       return a.status === 'pending' ? { ...a, status: 'rejected' } : a
     case 'admin/revoke':
-      return a.status === 'active' ? { ...a, status: 'revoked' } : a
+      return a.status === 'active' ? { ...a, status: 'revoked', role: 'admin' } : a
+    case 'admin/setSuper':
+      return a.status === 'active' ? { ...a, role: action.superAdmin ? 'super' : 'admin' } : a
     default:
       return a
   }

@@ -14,7 +14,7 @@ export default async function AdminAppLayout({
   const { dashboard, ...initialState } = await loadAdminData()
 
   return (
-    <AdminStoreProvider initialState={initialState} profile={{ uid: session.uid, name: session.name, initials: session.initials }} dashboard={dashboard}>
+    <AdminStoreProvider initialState={initialState} profile={{ uid: session.uid, name: session.name, initials: session.initials, superAdmin: session.superAdmin }} dashboard={dashboard}>
       <div className="mx-auto w-full max-w-[390px] pb-[110px]">{children}</div>
       <BottomNav />
     </AdminStoreProvider>

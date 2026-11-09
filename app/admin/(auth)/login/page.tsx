@@ -65,13 +65,9 @@ export default function AdminLoginPage() {
           state={error?.field === 'password' ? 'error' : 'default'}
           hint={error?.field === 'password' && <FieldHint tone="error">{error.message}</FieldHint>}
         />
-        <button
-          type="button"
-          onClick={() => setError({ field: 'email', message: 'Password reset is not available yet. Contact a super admin.' })}
-          className="self-end text-[14px] font-medium text-[#1b1f26]/72 hover:text-[#0f3d2e]"
-        >
+        <Link href="/admin/forgot-password" className="self-end text-[14px] font-medium text-[#1b1f26]/72 hover:text-[#0f3d2e]">
           Forgot password?
-        </button>
+        </Link>
 
         <div className="mt-1 flex flex-col items-center gap-[13px]">
           <PrimaryButton type="submit" disabled={!canSubmit}>

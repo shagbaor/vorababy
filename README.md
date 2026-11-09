@@ -21,15 +21,17 @@ pnpm dev                     # http://localhost:3000
 
 ## Admin app (`/admin`)
 
-- **Admin sign-up** at `/admin/signup` creates a Firebase Auth user and a pending `admins/{uid}` record. The phone check on that screen is still a demo (code `2314`); no SMS is sent.
-- **Google sign-in:** "Continue with Google" on the login and sign-up pages. The first time someone uses it, it files a pending admin request (no phone step); once approved, the same button signs them in. It needs the Google provider switched on in Firebase Authentication, and the site's domain listed under Authentication → Settings → Authorized domains.
-- **Approving admins:** pending sign-ups appear on the dashboard and under **Admin Team** (`/admin/team`), where any admin can approve, reject, remove or restore access. Admins cannot remove themselves. The very first admin has to be approved from the command line:
+- **Admin sign-up** at `/admin/signup` (email and password) or with "Continue with Google" on the login or sign-up page. Either way it files a pending request in `admins/{uid}`; nobody gets in until a super admin approves them. Each network can file at most 5 requests an hour (`lib/admin/rate-limit.ts`), and at most 25 can wait at once.
+- **Roles:** super admins manage the team on **Admin Team** (`/admin/team`): approve, reject, remove or restore admins, and make other admins super admins or remove that role. Regular admins run orders, disputes, users and support, and see the team read-only. Nobody can change their own access, and the last super admin cannot be removed. Roles are read on every request, so changes apply at once.
+- **First super admin:** approve from the command line once; everything after that happens in the app:
 
   ```bash
-  pnpm admin:approve someone@example.com            # grant
+  pnpm admin:approve someone@example.com --super    # approve as super admin
+  pnpm admin:approve someone@example.com            # approve as regular admin
   pnpm admin:approve someone@example.com --revoke   # remove and end their sessions
   ```
 
+- **Password reset:** "Forgot password?" (`/admin/forgot-password`) sends Firebase's reset email. The page answers the same whether or not the email has an account, and each network can request 5 an hour.
 - **Sessions** are Firebase session cookies (httpOnly, 7 days), verified on every request together with the `admin` claim (`lib/admin/session.ts`).
 - **Marketplace users** are the buyers, sellers and riders who register through the mobile API (`users/{uid}`, keyed by Firebase uid, newest first). Admins can verify users and edit their name, phone and location. Suspending or banning a user also disables their Firebase account and ends their sessions, so the mobile apps lock them out at once. The dashboard's seller, rider and user counts are live.
 - **Data** is read from Firestore in `lib/admin/data.ts`. Admin actions go through the `applyAdminAction` server action in `app/admin/actions.ts`, which re-checks the session, validates the input, updates the document in a transaction and mirrors the change onto Firebase Auth. `lib/admin/admin-actions.ts` defines the actions once for both the browser and the server.

@@ -27,7 +27,8 @@ import { formatNaira, formatNairaCompact } from '@/lib/admin/format'
 export default function AdminDashboardPage() {
   const router = useRouter()
   const { disputes, admins, profile, dashboard } = useAdminStore()
-  const adminRequests = admins.filter((a) => a.status === 'pending').length
+  // Only super admins can act on sign-up requests, so only they are prompted.
+  const adminRequests = profile.superAdmin ? admins.filter((a) => a.status === 'pending').length : 0
   const activeDisputes = disputes.filter((d) => d.status !== 'resolved')
   const resolvedDisputes = disputes.length - activeDisputes.length
 
