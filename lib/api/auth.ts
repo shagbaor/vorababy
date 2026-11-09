@@ -22,7 +22,8 @@ export async function requireUser(request: Request): Promise<ApiUser> {
   } catch (error) {
     const code = (error as { code?: string }).code
     if (code === 'auth/id-token-expired') throw new ApiError('unauthenticated', 'Session expired. Refresh the token and retry.')
-    if (code === 'auth/id-token-revoked' || code === 'auth/user-disabled') throw new ApiError('unauthenticated', 'Session is no longer valid. Sign in again.')
+    if (code === 'auth/user-disabled') throw new ApiError('account_disabled', 'This account has been suspended. Contact Vorapicks support.')
+    if (code === 'auth/id-token-revoked') throw new ApiError('unauthenticated', 'Session is no longer valid. Sign in again.')
     throw new ApiError('unauthenticated', 'Invalid token')
   }
 }

@@ -13,6 +13,7 @@ export type ApiErrorCode =
   | 'validation_failed'
   | 'unauthenticated'
   | 'forbidden'
+  | 'account_disabled'
   | 'not_found'
   | 'method_not_allowed'
   | 'conflict'
@@ -24,6 +25,7 @@ const STATUS: Record<ApiErrorCode, number> = {
   validation_failed: 422,
   unauthenticated: 401,
   forbidden: 403,
+  account_disabled: 403,
   not_found: 404,
   method_not_allowed: 405,
   conflict: 409,
