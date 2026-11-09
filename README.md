@@ -21,8 +21,8 @@ pnpm dev                     # http://localhost:3000
 
 ## Admin app (`/admin`)
 
-- **Sign-up** at `/admin/signup` creates a Firebase Auth user and a pending `admins/{uid}` record. The phone check on that screen is still a demo (code `2314`); no SMS is sent.
-- **Approval:** a new account cannot sign in until it is approved:
+- **Admin sign-up** at `/admin/signup` creates a Firebase Auth user and a pending `admins/{uid}` record. The phone check on that screen is still a demo (code `2314`); no SMS is sent.
+- **Approving admins:** pending sign-ups appear on the dashboard and under **Admin Team** (`/admin/team`), where any admin can approve, reject, remove or restore access. Admins cannot remove themselves. The very first admin has to be approved from the command line:
 
   ```bash
   pnpm admin:approve someone@example.com            # grant
@@ -30,7 +30,9 @@ pnpm dev                     # http://localhost:3000
   ```
 
 - **Sessions** are Firebase session cookies (httpOnly, 7 days), verified on every request together with the `admin` claim (`lib/admin/session.ts`).
-- **Data** is read from Firestore (`orders`, `disputes`, `users`, `conversations`, `meta/dashboard`) in `lib/admin/data.ts`. Admin actions go through the `applyAdminAction` server action in `app/admin/actions.ts`, which re-checks the session, validates the input and updates the document in a transaction. `lib/admin/admin-actions.ts` defines the actions once for both the browser and the server.
+- **Marketplace users** are the buyers, sellers and riders who register through the mobile API (`users/{uid}`, keyed by Firebase uid, newest first). Admins can verify users and edit their name, phone and location. Suspending or banning a user also disables their Firebase account and ends their sessions, so the mobile apps lock them out at once. The dashboard's seller, rider and user counts are live.
+- **Data** is read from Firestore in `lib/admin/data.ts`. Admin actions go through the `applyAdminAction` server action in `app/admin/actions.ts`, which re-checks the session, validates the input, updates the document in a transaction and mirrors the change onto Firebase Auth. `lib/admin/admin-actions.ts` defines the actions once for both the browser and the server.
+- **Still sample data:** orders, disputes, support conversations and the revenue and order figures, until the mobile apps create real ones. `pnpm db:seed` (dev only) writes them, plus seven sample users with Firebase accounts.
 
 ## Mobile API (`/api/v1`)
 

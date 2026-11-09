@@ -7,6 +7,8 @@ import { getAdminSession } from '@/lib/admin/session'
 import { COLLECTIONS } from '@/lib/admin/data'
 import { EMAIL_PATTERN, passwordValid, SESSION_COOKIE, SESSION_MAX_AGE } from '@/lib/admin/auth'
 import { applyAction, collectionFor, MAX_MESSAGE_LENGTH, type AdminAction } from '@/lib/admin/admin-actions'
+import type { AdminAccount, AdminUser } from '@/lib/admin/mock-data'
+import { validateProfile } from '@/lib/users'
 
 type FieldError<F extends string> = { ok: false; field: F; message: string }
 
@@ -45,7 +47,16 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 
   const token = await adminAuth().verifyIdToken(body.idToken)
   if (token.admin !== true) {
-    return { ok: false, field: 'email', message: 'Your account is waiting for approval by a Vorapicks admin.' }
+    const status = (await db().collection(COLLECTIONS.admins).doc(token.uid).get()).get('status')
+    const message =
+      status === 'pending'
+        ? 'Your account is waiting for approval by a Vorapicks admin.'
+        : status === 'rejected'
+          ? 'Your request for admin access was not approved.'
+          : status === 'revoked'
+            ? 'Your admin access has been removed. Contact a Vorapicks admin.'
+            : 'This account does not have admin access.'
+    return { ok: false, field: 'email', message }
   }
 
   const session = await adminAuth().createSessionCookie(body.idToken, { expiresIn: SESSION_MAX_AGE * 1000 })
@@ -113,15 +124,19 @@ export type ActionResult = { ok: true } | { ok: false; error: string }
 const ACTION_TYPES = new Set<AdminAction['type']>([
   'order/release',
   'order/refund',
-  'order/toggleFlag',
+  'order/setFlagged',
   'dispute/review',
   'dispute/resolve',
-  'user/toggleVerified',
-  'user/toggleSuspended',
-  'user/toggleBanned',
+  'user/setVerified',
+  'user/setSuspended',
+  'user/setBanned',
   'conversation/read',
   'conversation/send',
   'conversation/close',
+  'user/update',
+  'admin/approve',
+  'admin/reject',
+  'admin/revoke',
 ])
 
 function validAction(action: AdminAction): string | null {
@@ -130,6 +145,11 @@ function validAction(action: AdminAction): string | null {
   if (action.type === 'dispute/resolve' && action.resolution !== 'refunded' && action.resolution !== 'released') {
     return 'Invalid resolution'
   }
+  const flag = { 'order/setFlagged': 'flagged', 'user/setVerified': 'verified', 'user/setSuspended': 'suspended', 'user/setBanned': 'banned' }[
+    action.type as string
+  ]
+  if (flag && typeof (action as Record<string, unknown>)[flag] !== 'boolean') return 'Invalid value'
+  if (action.type === 'user/update' && !validateProfile(action).ok) return 'Invalid profile details'
   if (action.type === 'conversation/send') {
     if (typeof action.text !== 'string' || !action.text.trim() || action.text.length > MAX_MESSAGE_LENGTH) return 'Invalid message'
     if (typeof action.messageId !== 'string' || !/^[\w-]{1,64}$/.test(action.messageId)) return 'Invalid message id'
@@ -144,13 +164,49 @@ export async function applyAdminAction(action: AdminAction): Promise<ActionResul
 
   const invalid = validAction(action)
   if (invalid) return { ok: false, error: invalid }
+  if (action.type.startsWith('admin/') && action.type !== 'admin/approve' && action.id === session.uid) {
+    return { ok: false, error: 'You cannot remove your own access.' }
+  }
+  if (action.type === 'user/update') {
+    const profile = validateProfile(action)
+    if (profile.ok) action = { ...action, ...profile.value }
+  }
 
   const ref = db().collection(COLLECTIONS[collectionFor(action)]).doc(action.id)
-  return db().runTransaction(async (transaction) => {
+  const result = await db().runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref)
-    if (!snapshot.exists) return { ok: false, error: 'Not found' }
-    const { id: _id, ...next } = applyAction({ ...snapshot.data(), id: snapshot.id }, action)
+    if (!snapshot.exists) return null
+    const { id, ...next } = applyAction({ ...snapshot.data(), id: snapshot.id }, action)
     transaction.set(ref, { ...next, updatedAt: FieldValue.serverTimestamp(), updatedBy: session.uid })
-    return { ok: true } as const
+    return { ...next, id }
   })
+  if (!result) return { ok: false, error: 'Not found' }
+
+  await syncAuth(action, result)
+  return { ok: true }
+}
+
+// Mirrors a saved change onto the Firebase Auth account so it takes effect
+// everywhere, including the mobile apps: suspended or banned users cannot sign
+// in and lose their current sessions; admin decisions set the admin claim.
+async function syncAuth(action: AdminAction, item: Record<string, unknown>) {
+  const auth = adminAuth()
+  try {
+    if (action.type === 'user/setSuspended' || action.type === 'user/setBanned') {
+      const user = item as unknown as AdminUser
+      const disabled = user.suspended || user.banned
+      await auth.updateUser(action.id, { disabled })
+      if (disabled) await auth.revokeRefreshTokens(action.id)
+    } else if (action.type === 'user/update') {
+      await auth.updateUser(action.id, { displayName: action.name })
+    } else if (action.type.startsWith('admin/')) {
+      const admin = (item as unknown as AdminAccount).status === 'active'
+      const { customClaims } = await auth.getUser(action.id)
+      await auth.setCustomUserClaims(action.id, { ...customClaims, admin })
+      if (!admin) await auth.revokeRefreshTokens(action.id)
+    }
+  } catch (error) {
+    // Profiles without a Firebase account (none in normal use) have nothing to sync.
+    if ((error as { code?: string }).code !== 'auth/user-not-found') throw error
+  }
 }

@@ -59,7 +59,7 @@ export default function OrdersPage() {
                   onRelease={() => release(order)}
                   onRefund={() => refund(order)}
                   onResolve={() => setResolving(order)}
-                  onToggleFlag={() => dispatch({ type: 'order/toggleFlag', id: order.id })}
+                  onToggleFlag={() => dispatch({ type: 'order/setFlagged', id: order.id, flagged: !order.flagged })}
                 />
               </li>
             ))}

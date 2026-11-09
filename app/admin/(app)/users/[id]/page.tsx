@@ -1,18 +1,21 @@
 'use client'
 
 import { useParams } from 'next/navigation'
+import { useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Calendar02Icon, Call02Icon, Invoice01Icon, Location06Icon, Mail02Icon, PencilEdit02Icon } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
 import { useAdminStore, useUser } from '@/components/admin/admin-store'
-import { Avatar, EmptyState, Pill, ScreenHeader, useToast } from '@/components/admin/ui'
-import { roleLabel } from '@/lib/admin/mock-data'
+import { Avatar, BottomSheet, EmptyState, Pill, ScreenHeader, SheetButton, useToast } from '@/components/admin/ui'
+import { roleLabel, type AdminUser } from '@/lib/admin/mock-data'
+import { validateProfile, type ProfileErrors } from '@/lib/users'
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>()
   const { dispatch } = useAdminStore()
   const user = useUser(id)
   const { toast, showToast } = useToast()
+  const [editing, setEditing] = useState(false)
 
   if (!user) {
     return (
@@ -27,8 +30,8 @@ export default function UserProfilePage() {
 
   const details = [
     { label: 'Email', value: user.email, icon: Mail02Icon },
-    { label: 'Phone', value: user.phone, icon: Call02Icon },
-    { label: 'Location', value: user.location, icon: Location06Icon },
+    { label: 'Phone', value: user.phone || 'Not added', icon: Call02Icon },
+    { label: 'Location', value: user.location || 'Not added', icon: Location06Icon },
     { label: 'Joined', value: user.joined, icon: Calendar02Icon },
     { label: 'Total Orders', value: `${user.totalOrders} orders`, icon: Invoice01Icon },
   ]
@@ -39,7 +42,7 @@ export default function UserProfilePage() {
       active: user.verified,
       activeClass: 'border-[#16a34a] bg-[#16a34a] text-white',
       onClick: () => {
-        dispatch({ type: 'user/toggleVerified', id: user.id })
+        dispatch({ type: 'user/setVerified', id: user.id, verified: !user.verified })
         showToast(user.verified ? `${user.name} is no longer verified.` : `${user.name} is now verified.`)
       },
     },
@@ -48,8 +51,8 @@ export default function UserProfilePage() {
       active: user.suspended,
       activeClass: 'border-[#ff3b3b] bg-[#ff3b3b] text-white',
       onClick: () => {
-        dispatch({ type: 'user/toggleSuspended', id: user.id })
-        showToast(user.suspended ? `${user.name}'s suspension was lifted.` : `${user.name} has been suspended.`)
+        dispatch({ type: 'user/setSuspended', id: user.id, suspended: !user.suspended })
+        showToast(user.suspended ? `${user.name}'s suspension was lifted.` : `${user.name} has been suspended and signed out.`)
       },
     },
     {
@@ -57,8 +60,8 @@ export default function UserProfilePage() {
       active: user.banned,
       activeClass: 'border-[#ff3b3b] bg-[#ff3b3b] text-white',
       onClick: () => {
-        dispatch({ type: 'user/toggleBanned', id: user.id })
-        showToast(user.banned ? `${user.name} has been unbanned.` : `${user.name} has been banned.`)
+        dispatch({ type: 'user/setBanned', id: user.id, banned: !user.banned })
+        showToast(user.banned ? `${user.name} has been unbanned.` : `${user.name} has been banned and signed out.`)
       },
     },
   ]
@@ -88,7 +91,7 @@ export default function UserProfilePage() {
           <button
             type="button"
             aria-label="Edit user"
-            onClick={() => showToast('Editing user details will be available once the database is connected.')}
+            onClick={() => setEditing(true)}
             className="rounded-lg p-1 text-[#9ca3af] transition-colors hover:bg-gray-100 hover:text-[#4b5563]"
           >
             <HugeiconsIcon icon={PencilEdit02Icon} size={24} strokeWidth={1.5} />
@@ -127,6 +130,75 @@ export default function UserProfilePage() {
           </div>
         </section>
       </div>
+
+      {editing && (
+        <EditUserSheet
+          user={user}
+          onClose={() => setEditing(false)}
+          onSave={(fields) => {
+            dispatch({ type: 'user/update', id: user.id, ...fields })
+            setEditing(false)
+            showToast('Profile updated.')
+          }}
+        />
+      )}
     </main>
+  )
+}
+
+function EditUserSheet({
+  user,
+  onClose,
+  onSave,
+}: {
+  user: AdminUser
+  onClose: () => void
+  onSave: (fields: { name: string; phone: string; location: string }) => void
+}) {
+  const [form, setForm] = useState({ name: user.name, phone: user.phone, location: user.location })
+  const [errors, setErrors] = useState<ProfileErrors>({})
+
+  const fields = [
+    { key: 'name' as const, label: 'Name', autoComplete: 'name' },
+    { key: 'phone' as const, label: 'Phone', autoComplete: 'tel' },
+    { key: 'location' as const, label: 'Location', autoComplete: 'address-level2' },
+  ]
+
+  function save() {
+    const result = validateProfile(form)
+    if (result.ok) onSave(result.value)
+    else setErrors(result.errors)
+  }
+
+  return (
+    <BottomSheet open onClose={onClose} title="Edit profile" subtitle={user.email}>
+      <div className="mb-4 flex flex-col gap-3">
+        {fields.map(({ key, label, autoComplete }) => (
+          <label key={key} className="flex flex-col gap-1.5">
+            <span className="text-xs text-[#6b7280]">{label}</span>
+            <input
+              value={form[key]}
+              autoComplete={autoComplete}
+              onChange={(event) => {
+                setForm((prev) => ({ ...prev, [key]: event.target.value }))
+                setErrors((prev) => ({ ...prev, [key]: undefined }))
+              }}
+              aria-invalid={Boolean(errors[key])}
+              className={cn(
+                'h-11 rounded-xl border px-3 text-sm text-[#1e1e1e] outline-none transition-colors focus:border-[#2e8b57]',
+                errors[key] ? 'border-[#e62b2b]' : 'border-[#e5e7eb]',
+              )}
+            />
+            {errors[key] && <span className="text-[11px] text-[#e62b2b]">{errors[key]}</span>}
+          </label>
+        ))}
+      </div>
+      <SheetButton variant="primary" onClick={save}>
+        Save changes
+      </SheetButton>
+      <SheetButton variant="outline" onClick={onClose}>
+        Cancel
+      </SheetButton>
+    </BottomSheet>
   )
 }

@@ -12,6 +12,8 @@ import {
   Motorbike02Icon,
   Notification01Icon,
   Store01Icon,
+  UserAdd01Icon,
+  UserGroupIcon,
   UserIcon,
 } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
@@ -24,7 +26,8 @@ import { formatNaira, formatNairaCompact } from '@/lib/admin/format'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const { disputes, profile, dashboard } = useAdminStore()
+  const { disputes, admins, profile, dashboard } = useAdminStore()
+  const adminRequests = admins.filter((a) => a.status === 'pending').length
   const activeDisputes = disputes.filter((d) => d.status !== 'resolved')
   const resolvedDisputes = disputes.length - activeDisputes.length
 
@@ -66,6 +69,19 @@ export default function AdminDashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Link
+            href="/admin/team"
+            aria-label={adminRequests > 0 ? `Admin team, ${adminRequests} waiting for approval` : 'Admin team'}
+            title="Admin team"
+            className="relative rounded-full p-1.5 text-[#1e1e1e] transition-colors hover:bg-gray-100"
+          >
+            <HugeiconsIcon icon={UserGroupIcon} size={24} strokeWidth={1.5} />
+            {adminRequests > 0 && (
+              <span className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-[#ff3b3b] text-[10px] font-bold text-white">
+                {adminRequests}
+              </span>
+            )}
+          </Link>
           <button
             type="button"
             aria-label="Notifications"
@@ -86,6 +102,19 @@ export default function AdminDashboardPage() {
       </header>
 
       <div className="mt-6 flex flex-col gap-[13px]">
+        {adminRequests > 0 && (
+          <Link
+            href="/admin/team"
+            className="flex items-center gap-3 rounded-2xl border border-[#fde68a] bg-[#fffbeb] px-4 py-3 transition-colors hover:bg-[#fef3c7]"
+          >
+            <HugeiconsIcon icon={UserAdd01Icon} size={22} strokeWidth={1.5} className="shrink-0 text-[#b45309]" />
+            <p className="flex-1 text-[13px] font-medium text-[#78350f]">
+              {adminRequests === 1 ? '1 admin sign-up is' : `${adminRequests} admin sign-ups are`} waiting for approval
+            </p>
+            <span className="text-xs font-medium text-[#b45309]">Review</span>
+          </Link>
+        )}
+
         {/* Revenue */}
         <section className="rounded-3xl bg-[#2e8b57] p-[21px]">
           <p className="text-xs font-medium leading-4 text-[#f3f4f6]">Total Platform Revenue</p>

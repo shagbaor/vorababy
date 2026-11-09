@@ -42,12 +42,26 @@ export type AdminUser = {
   role: UserRole
   phone: string
   location: string
+  // Display date derived from the profile's createdAt.
   joined: string
   totalOrders: number
   activeOrders: number
   verified: boolean
   suspended: boolean
   banned: boolean
+}
+
+// A person with access to this admin app (Firestore admins/{uid}). Created as
+// 'pending' by the sign-up page; another admin approves or rejects it.
+export type AdminAccountStatus = 'pending' | 'active' | 'rejected' | 'revoked'
+
+export type AdminAccount = {
+  id: string
+  fullName: string
+  email: string
+  phone: string
+  status: AdminAccountStatus
+  requested: string
 }
 
 export type ChatMessage = {
@@ -170,13 +184,13 @@ export const seedDisputes: Dispute[] = [
 ]
 
 export const seedUsers: AdminUser[] = [
-  { id: 'amaka-osei', name: 'Amaka Osei', email: 'amaka.osei@email.com', role: 'buyer', phone: '+234 801 234 5678', location: 'Lekki, Lagos', joined: 'Jan 15, 2026', totalOrders: 24, activeOrders: 24, verified: false, suspended: false, banned: false },
-  { id: 'chukwuemeka-bello', name: 'Chukwuemeka Bello', email: 'chukwu.bello@email.com', role: 'buyer', phone: '+234 802 345 6789', location: 'Victoria Island, Lagos', joined: 'Feb 3, 2026', totalOrders: 11, activeOrders: 11, verified: false, suspended: false, banned: false },
-  { id: 'green-valley-farm', name: 'Green Valley Farm', email: 'greenvalley@farm.com', role: 'seller', phone: '+234 803 456 7890', location: 'Epe, Lagos', joined: 'Dec 10, 2025', totalOrders: 187, activeOrders: 187, verified: true, suspended: false, banned: false },
-  { id: 'harvest-fields', name: 'Harvest Fields', email: 'harvest.fields@farm.ng', role: 'seller', phone: '+234 804 567 8901', location: 'Kano, Nigeria', joined: 'Nov 5, 2025', totalOrders: 143, activeOrders: 187, verified: false, suspended: false, banned: false },
-  { id: 'emeka-johnson', name: 'Emeka Johnson', email: 'emeka.j@drivers.com', role: 'rider', phone: '+234 805 678 9012', location: 'Surulere, Lagos', joined: 'Jan 22, 2026', totalOrders: 312, activeOrders: 187, verified: true, suspended: false, banned: false },
-  { id: 'tunde-adeola', name: 'Tunde Adeola', email: 'tunde.a@drivers.com', role: 'rider', phone: '+234 808 901 2345', location: 'Yaba, Lagos', joined: 'Feb 14, 2026', totalOrders: 178, activeOrders: 178, verified: false, suspended: false, banned: false },
-  { id: 'happy-hens-farm', name: 'Happy Hens Farm', email: 'happy.hens@farm.ng', role: 'seller', phone: '+234 810 123 4567', location: 'Ibadan, Nigeria', joined: 'Dec 28, 2025', totalOrders: 312, activeOrders: 312, verified: false, suspended: false, banned: false },
+  { id: 'amaka-osei', name: 'Amaka Osei', email: 'amaka.osei@example.com', role: 'buyer', phone: '+234 801 234 5678', location: 'Lekki, Lagos', joined: 'Jan 15, 2026', totalOrders: 24, activeOrders: 24, verified: false, suspended: false, banned: false },
+  { id: 'chukwuemeka-bello', name: 'Chukwuemeka Bello', email: 'chukwu.bello@example.com', role: 'buyer', phone: '+234 802 345 6789', location: 'Victoria Island, Lagos', joined: 'Feb 3, 2026', totalOrders: 11, activeOrders: 11, verified: false, suspended: false, banned: false },
+  { id: 'green-valley-farm', name: 'Green Valley Farm', email: 'greenvalley@example.com', role: 'seller', phone: '+234 803 456 7890', location: 'Epe, Lagos', joined: 'Dec 10, 2025', totalOrders: 187, activeOrders: 187, verified: true, suspended: false, banned: false },
+  { id: 'harvest-fields', name: 'Harvest Fields', email: 'harvest.fields@example.com', role: 'seller', phone: '+234 804 567 8901', location: 'Kano, Nigeria', joined: 'Nov 5, 2025', totalOrders: 143, activeOrders: 187, verified: false, suspended: false, banned: false },
+  { id: 'emeka-johnson', name: 'Emeka Johnson', email: 'emeka.j@example.com', role: 'rider', phone: '+234 805 678 9012', location: 'Surulere, Lagos', joined: 'Jan 22, 2026', totalOrders: 312, activeOrders: 187, verified: true, suspended: false, banned: false },
+  { id: 'tunde-adeola', name: 'Tunde Adeola', email: 'tunde.a@example.com', role: 'rider', phone: '+234 808 901 2345', location: 'Yaba, Lagos', joined: 'Feb 14, 2026', totalOrders: 178, activeOrders: 178, verified: false, suspended: false, banned: false },
+  { id: 'happy-hens-farm', name: 'Happy Hens Farm', email: 'happy.hens@example.com', role: 'seller', phone: '+234 810 123 4567', location: 'Ibadan, Nigeria', joined: 'Dec 28, 2025', totalOrders: 312, activeOrders: 312, verified: false, suspended: false, banned: false },
 ]
 
 export const seedConversations: Conversation[] = [
