@@ -76,7 +76,7 @@ function applyToDispute(d: Dispute, action: AdminAction): Dispute {
 function applyToUser(u: AdminUser, action: AdminAction): AdminUser {
   switch (action.type) {
     case 'user/setVerified':
-      return { ...u, verified: action.verified }
+      return { ...u, verified: action.verified, ...(u.role !== 'buyer' && { verificationStatus: action.verified ? 'approved' : 'rejected' }) }
     case 'user/setSuspended':
       return { ...u, suspended: action.suspended, banned: action.suspended ? false : u.banned }
     case 'user/setBanned':

@@ -10,6 +10,7 @@ import { EMAIL_PATTERN, passwordValid, SESSION_COOKIE, SESSION_MAX_AGE } from '@
 import { applyAction, collectionFor, MAX_MESSAGE_LENGTH, type AdminAction } from '@/lib/admin/admin-actions'
 import type { AdminAccount, AdminUser } from '@/lib/admin/mock-data'
 import { validateProfile } from '@/lib/users'
+import { notify } from '@/lib/server/notify'
 
 type FieldError<F extends string> = { ok: false; field: F; message: string }
 
@@ -330,6 +331,26 @@ async function syncAuth(action: AdminAction, item: Record<string, unknown>) {
       const disabled = user.suspended || user.banned
       await auth.updateUser(action.id, { disabled })
       if (disabled) await auth.revokeRefreshTokens(action.id)
+      // A suspended seller's shop disappears from the app; a suspended rider goes offline.
+      if (user.role === 'seller') await db().collection('stores').doc(action.id).set({ ownerActive: !disabled }, { merge: true })
+      if (user.role === 'rider' && disabled) await db().collection('riders').doc(action.id).set({ isOnline: false }, { merge: true })
+    } else if (action.type === 'user/setVerified') {
+      // Sellers' stores and riders' records mirror the decision; buyers only get the badge.
+      const user = item as unknown as AdminUser
+      if (user.role !== 'buyer') {
+        const status = user.verificationStatus ?? (user.verified ? 'approved' : 'rejected')
+        await db().collection(user.role === 'seller' ? 'stores' : 'riders').doc(action.id).set({ verificationStatus: status }, { merge: true })
+        await notify(
+          action.id,
+          'verification',
+          status === 'approved' ? 'You are verified' : 'Verification update',
+          status === 'approved'
+            ? user.role === 'seller'
+              ? 'Your store is approved. You can publish products now.'
+              : 'Your rider account is approved. Go online to receive jobs.'
+            : 'We could not approve your account yet. Check your details in the app and submit again.',
+        )
+      }
     } else if (action.type === 'user/update') {
       await auth.updateUser(action.id, { displayName: action.name })
     } else if (action.type.startsWith('admin/')) {

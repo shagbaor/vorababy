@@ -47,6 +47,8 @@ export type AdminUser = {
   totalOrders: number
   activeOrders: number
   verified: boolean
+  // Sellers and riders: incomplete → pending (submitted) → approved / rejected.
+  verificationStatus?: 'not_required' | 'incomplete' | 'pending' | 'approved' | 'rejected'
   suspended: boolean
   banned: boolean
 }
