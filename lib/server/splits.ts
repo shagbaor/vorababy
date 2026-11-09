@@ -156,6 +156,9 @@ export async function applySplitPayment(t: Transaction, splitId: string, uid: st
   }
   const ids = writeOrders(t, prepared!, s.checkout.drafts, { ...s.checkout.ctx, paymentMethod: 'split', paymentRef: reference, splitId })
   t.update(ref, { participants, paidKobo, status: 'placed', orderIds: ids, placedAt: FieldValue.serverTimestamp() })
+  // Like a normal checkout, the bought items leave the organiser's cart.
+  const bought = s.checkout.drafts.flatMap((d) => d.lines.map((l) => l.productId))
+  t.set(db().collection('carts').doc(s.organiserId), { items: Object.fromEntries(bought.map((id) => [id, FieldValue.delete()])), promoCode: null }, { merge: true })
   return {
     orderIds: ids,
     after: async () => {

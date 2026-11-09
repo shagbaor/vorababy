@@ -13,7 +13,7 @@ export const GET = handle(async (request) => {
   const { user } = await requireProfile(request, { roles: ['seller'] })
   const query = parseQuery(request, pageQuery.extend({ status: z.enum(['all', 'published', 'draft', 'low_stock']).default('all'), q: z.string().max(80).optional() }))
   const snapshot = await db().collection('products').where('storeId', '==', user.uid).get()
-  const all = snapshot.docs.map((d) => presentSellerProduct(d.id, d.data())).sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+  const all = snapshot.docs.filter((d) => d.get('status') !== 'custom').map((d) => presentSellerProduct(d.id, d.data())).sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
   const q = query.q?.toLowerCase()
   const items = all.filter(
     (p) =>

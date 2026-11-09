@@ -9,14 +9,14 @@ import { deliveryFeeKobo, getSettings, riderPayKobo, type Settings } from '@/lib
 // created per store; the service fee is charged per order and a promo
 // discount is shared across the orders in proportion to their subtotals.
 
-export type CartDoc = { items: Record<string, number>; promoCode?: string | null }
+export type CartDoc = { items: Record<string, number>; promoCode?: string | null; ownerId?: string }
 
 export const DELIVERY_SLOTS = ['asap', 'today_12_14', 'today_16_18', 'tomorrow_morning'] as const
 export type DeliverySlot = (typeof DELIVERY_SLOTS)[number]
 
 export async function loadCart(uid: string): Promise<CartDoc> {
   const snapshot = await db().collection('carts').doc(uid).get()
-  return { items: {}, promoCode: null, ...(snapshot.data() as CartDoc | undefined) }
+  return { items: {}, promoCode: null, ...(snapshot.data() as CartDoc | undefined), ownerId: uid }
 }
 
 export function slotAvailable(slot: DeliverySlot, now = new Date()) {
@@ -72,6 +72,11 @@ export type CartGroup = {
   subtotalKobo: number
 }
 
+// Catalogue products, or a personal-shopping product made for this buyer.
+export function buyable(p: FirebaseFirestore.DocumentData, buyerId: string | undefined) {
+  return p.status === 'published' || (p.status === 'custom' && Boolean(buyerId) && p.customForBuyerId === buyerId)
+}
+
 // Reads the cart's products and stores. Lines that can't be bought say why.
 export async function cartGroups(cart: CartDoc) {
   const ids = Object.keys(cart.items).filter((id) => cart.items[id] > 0)
@@ -83,7 +88,7 @@ export async function cartGroups(cart: CartDoc) {
   for (const snapshot of products) {
     const p = snapshot.exists ? ({ ...snapshot.data()!, id: snapshot.id } as ProductDoc) : null
     const store = p && stores.get(p.storeId)
-    if (!p || !store || p.status !== 'published') {
+    if (!p || !store || !buyable(p, cart.ownerId)) {
       missing.push(snapshot.id)
       continue
     }

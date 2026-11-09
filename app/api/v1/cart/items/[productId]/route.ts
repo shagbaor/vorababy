@@ -4,6 +4,7 @@ import { parseBody, requireProfile } from '@/lib/api/guard'
 import { ApiError, handle, methodNotAllowed, ok } from '@/lib/api/response'
 import { db } from '@/lib/firebase/admin'
 import { presentCart } from '@/lib/server/cart-present'
+import { buyable } from '@/lib/server/cart'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +19,7 @@ export const PUT = handle<Context>(async (request, { params }) => {
 
   if (quantity > 0) {
     const product = await db().collection('products').doc(productId).get()
-    if (!product.exists || product.get('status') !== 'published') throw new ApiError('not_found', 'Product not found')
+    if (!product.exists || !buyable(product.data()!, user.uid)) throw new ApiError('not_found', 'Product not found')
     const stock = (product.get('stock') as number) ?? 0
     if (stock <= 0) throw new ApiError('conflict', 'This product is out of stock')
     if (quantity > stock) throw new ApiError('validation_failed', `Only ${stock} left`, { quantity: `Only ${stock} left` })

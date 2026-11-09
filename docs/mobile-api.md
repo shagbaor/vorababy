@@ -2,7 +2,7 @@
 
 For the Flutter developer building the **buyer**, **seller** and **rider** apps. It covers every screen in the Figma file *NEW VORAPICKS (Copy)* (pages "Page 1" = buyer, "SELLER VIEW", "DRIVER") and says, for each one, which endpoint or live data feed it uses.
 
-**Status of each endpoint:** ✅ live now · 🔨 being built (stage shown). Build order is in [section 15](#15-build-stages). Everything marked 🔨 is the agreed contract: you can code against it now and it will behave as written.
+**Status:** every endpoint in this guide is ✅ built and tested against the `vorapicks-dev` Firebase project. Voice/video calls and the Vora AI assistant are **not planned for now** (section 10). See [section 15](#15-build-stages-and-launch-checklist) for what still needs switching on before launch.
 
 If the app already does something the design does not show (for example store opening hours), tell us, and it is added here rather than the app working around it.
 
@@ -82,7 +82,7 @@ Failure:
 
 ### Files (photos, CAC/NIN documents, licences)
 
-1. `POST /uploads` `{ "purpose": "product_photo" | "store_logo" | "store_cover" | "kyc_document" | "avatar" | "chat_attachment" | "delivery_proof", "contentType": "image/jpeg", "sizeBytes": 123456 }` → `data: { "uploadUrl", "fileId", "expiresAt" }` 🔨 Stage 2
+1. `POST /uploads` `{ "purpose": "product_photo" | "store_logo" | "store_cover" | "kyc_document" | "avatar" | "chat_attachment" | "delivery_proof", "contentType": "image/jpeg", "sizeBytes": 123456 }` → `data: { "uploadUrl", "fileId", "expiresAt" }` ✅
 2. `PUT` the file bytes to `uploadUrl` with the same `Content-Type`.
 3. Send `fileId` in the request that uses the file (e.g. a product's `photoFileIds`).
 
@@ -122,8 +122,8 @@ All sign-in happens in the app with Firebase Authentication; the API never sees 
 | `GET /me` | ✅ (shape below from Stage 1) | Profile, role, verification status, store or rider summary |
 | `POST /me` | ✅ (shape below from Stage 1) | Register: `{ "role": "buyer"\|"seller"\|"rider", "name", "email"?, "phone"? }` → `201`. `409 conflict` if already registered. The role cannot be changed later. |
 | `PATCH /me` | ✅ | `{ "name"?, "phone"?, "email"?, "avatarFileId"? }` (Edit Profile) |
-| `PATCH /me/preferences` | 🔨 Stage 1 | `{ "shoppingMode": "restaurants"\|"farm"\|"all" }` (What are you shopping for today? / Skip) and notification settings: `{ "notifications": { "orderUpdates": true, "promotions": false, "news": false, "sms": true } }` |
-| `DELETE /me` | 🔨 Stage 1 | Delete account (store requirement) |
+| `PATCH /me/preferences` | ✅ | `{ "shoppingMode": "restaurants"\|"farm"\|"all" }` (What are you shopping for today? / Skip) and notification settings: `{ "notifications": { "orderUpdates": true, "promotions": false, "news": false, "sms": true } }` |
+| `DELETE /me` | ✅ | Delete account (store requirement) |
 
 `GET /me` response (from Stage 1):
 
@@ -151,11 +151,11 @@ All sign-in happens in the app with Firebase Authentication; the API never sees 
 
 | Step | Endpoint | Status | Body |
 | --- | --- | --- | --- |
-| 1 Tell us about your business | `PUT /seller/store` | 🔨 Stage 1 | `{ "name", "ownerLegalName", "type": "farm"\|"restaurant"\|"vendor", "businessType": "Cooperative", "description"?, "phone"?, "address": { "line", "city", "state" }, "location": { "lat", "lng" } }` |
-| 2–3 Verify your business (CAC, NIN) | `PUT /seller/documents` | 🔨 Stage 2 | `{ "cacFileId", "ninFileId" }` (upload first, section 2) |
-| 4 Set up your payout account | `PUT /me/payout-account` | 🔨 Stage 1 | see Payouts below |
-| Submit ("You're all set!") | `POST /seller/submit` | 🔨 Stage 2 | Moves to `pending`; admins review in the admin app |
-| Edit Business / Contact Information | `PATCH /seller/store` | 🔨 Stage 1 | Same fields as step 1, plus `logoFileId`, `coverFileId`, `isOpen`, `openingHours` |
+| 1 Tell us about your business | `PUT /seller/store` | ✅ | `{ "name", "ownerLegalName", "type": "farm"\|"restaurant"\|"vendor", "businessType": "Cooperative", "description"?, "phone"?, "address": { "line", "city", "state" }, "location": { "lat", "lng" } }` |
+| 2–3 Verify your business (CAC, NIN) | `PUT /seller/documents` | ✅ | `{ "cacFileId", "ninFileId" }` (upload first, section 2) |
+| 4 Set up your payout account | `PUT /me/payout-account` | ✅ | see Payouts below |
+| Submit ("You're all set!") | `POST /seller/submit` | ✅ | Moves to `pending`; admins review in the admin app |
+| Edit Business / Contact Information | `PATCH /seller/store` | ✅ | Same fields as step 1, plus `logoFileId`, `coverFileId`, `isOpen`, `openingHours` |
 
 `openingHours`: `{ "mon": { "open": "08:00", "close": "18:00" }, …, "sun": null }` (null = closed). Times are Lagos time.
 
@@ -163,27 +163,27 @@ All sign-in happens in the app with Firebase Authentication; the API never sees 
 
 | Step | Endpoint | Status | Body |
 | --- | --- | --- | --- |
-| 1 Your personal details | `PUT /rider/profile` | 🔨 Stage 1 | `{ "legalName", "dateOfBirth": "1995-04-12", "address": { "line", "city", "state" } }` |
-| 2–3 Upload your credentials | `PUT /rider/documents` | 🔨 Stage 2 | `{ "driversLicenceFileId", "ninFileId" }` |
-| 4 Your vehicle details | `PUT /rider/vehicle` | 🔨 Stage 1 | `{ "type": "motorcycle"\|"bicycle"\|"car"\|"van", "plateNumber", "color", "makeModel", "year": 2022 }` |
-| 5 Set up your payout account | `PUT /me/payout-account` | 🔨 Stage 1 | see below |
-| Submit | `POST /rider/submit` | 🔨 Stage 2 | Moves to `pending` |
+| 1 Your personal details | `PUT /rider/profile` | ✅ | `{ "legalName", "dateOfBirth": "1995-04-12", "address": { "line", "city", "state" } }` |
+| 2–3 Upload your credentials | `PUT /rider/documents` | ✅ | `{ "driversLicenceFileId", "ninFileId" }` |
+| 4 Your vehicle details | `PUT /rider/vehicle` | ✅ | `{ "type": "motorcycle"\|"bicycle"\|"car"\|"van", "plateNumber", "color", "makeModel", "year": 2022 }` |
+| 5 Set up your payout account | `PUT /me/payout-account` | ✅ | see below |
+| Submit | `POST /rider/submit` | ✅ | Moves to `pending` |
 
 ### Payouts (sellers and riders)
 
 | Endpoint | Status | Notes |
 | --- | --- | --- |
-| `GET /banks` *public* | 🔨 Stage 1 | Nigerian banks for the bank picker: `[{ "code": "058", "name": "GTBank" }]` |
-| `POST /banks/resolve` | 🔨 Stage 1 | `{ "bankCode", "accountNumber" }` → `{ "accountName" }`. Show the name for the user to confirm ("We'll verify the account"). |
-| `PUT /me/payout-account` | 🔨 Stage 1 | `{ "bankCode", "accountNumber" }`. The server resolves and stores the verified name; it cannot be typed in. |
+| `GET /banks` *public* | ✅ | Nigerian banks for the bank picker: `[{ "code": "058", "name": "GTBank" }]` |
+| `POST /banks/resolve` | ✅ | `{ "bankCode", "accountNumber" }` → `{ "accountName" }`. Show the name for the user to confirm ("We'll verify the account"). |
+| `PUT /me/payout-account` | ✅ | `{ "bankCode", "accountNumber" }`. The server resolves and stores the verified name; it cannot be typed in. |
 
 ### Saved addresses (buyer Profile → Saved Addresses)
 
 | Endpoint | Status | Notes |
 | --- | --- | --- |
-| `GET /me/addresses` | 🔨 Stage 1 | |
-| `POST /me/addresses` | 🔨 Stage 1 | `{ "label": "Home", "line": "45 Admiralty Way", "area": "Lekki Phase 1", "city": "Lagos", "state": "Lagos", "location": { "lat", "lng" }, "instructions"?: "Gate code 4421", "isDefault"?: true }` |
-| `PATCH /me/addresses/{id}` · `DELETE /me/addresses/{id}` | 🔨 Stage 1 | "Set as Default" is `PATCH { "isDefault": true }` |
+| `GET /me/addresses` | ✅ | |
+| `POST /me/addresses` | ✅ | `{ "label": "Home", "line": "45 Admiralty Way", "area": "Lekki Phase 1", "city": "Lagos", "state": "Lagos", "location": { "lat", "lng" }, "instructions"?: "Gate code 4421", "isDefault"?: true }` |
+| `PATCH /me/addresses/{id}` · `DELETE /me/addresses/{id}` | ✅ | "Set as Default" is `PATCH { "isDefault": true }` |
 
 "Use current location": get coordinates with `geolocator`, turn them into an address with the Google Geocoding API in the app, and send both.
 
@@ -195,7 +195,7 @@ All sign-in happens in the app with Firebase Authentication; the API never sees 
 | Change Password | Firebase `user.updatePassword` after `reauthenticateWithCredential` |
 | Biometric Login | Device only (`local_auth`); nothing on the server |
 | Two-Factor Auth | Firebase multi-factor (SMS) in the app |
-| FAQs, Email Us, Rate the App | `GET /config` (public) returns `supportEmail`, `faqs`, store links 🔨 Stage 1 |
+| FAQs, Email Us, Rate the App | `GET /config` (public) returns `supportEmail`, `faqs`, store links ✅ |
 | Live Chat | Support conversation, section 10 |
 | Sign Out | `POST /me/devices/{id}/remove` (stop pushes), then Firebase `signOut()` |
 
@@ -205,7 +205,7 @@ All sign-in happens in the app with Firebase Authentication; the API never sees 
 
 Figma: *HOMEPAGE, RESTAURANT SCREEN, RESTUARANT PAGE, PRODUCT DETAIL PAGE, FILTER PAGE, WISHLIST, Categories, Flash deals*
 
-All 🔨 **Stage 3**. Browsing is public (no token needed) so the app can show the shop before sign-in; with a token, `isWishlisted` is filled in.
+All ✅ live. Browsing is public (no token needed) so the app can show the shop before sign-in; with a token, `isWishlisted` is filled in.
 
 | Endpoint | Screen | Notes |
 | --- | --- | --- |
@@ -227,7 +227,7 @@ All 🔨 **Stage 3**. Browsing is public (no token needed) so the app can show t
 
 Figma: *MY PRODUCTS SELLERS VIEW, ADD PRODUCT, DELETE PRODUCT, SELLERS DASHBOARD*
 
-Only **approved** sellers can publish. All 🔨 **Stage 3**.
+Only **approved** sellers can publish. All ✅ live.
 
 | Endpoint | Screen | Notes |
 | --- | --- | --- |
@@ -244,7 +244,7 @@ Only **approved** sellers can publish. All 🔨 **Stage 3**.
 
 Figma: *MY CART, Delivery Details, Payment Method, Order Summary, Bank Transfer, Order Placed, RESTAURANT CHECK OUT FLOW*
 
-All 🔨 **Stage 4**. The cart is stored on the server so it survives reinstalling and is the same on every device.
+All ✅ live. The cart is stored on the server so it survives reinstalling and is the same on every device.
 
 **One order per store.** If the cart holds items from two stores, checkout creates two orders (paid together, one payment).
 
@@ -271,7 +271,7 @@ All 🔨 **Stage 4**. The cart is stored on the server so it survives reinstalli
 
 ### Saved cards (Profile → Payment Methods)
 
-🔨 Stage 4. A card is saved automatically the first time it is used successfully (Paystack authorization; we never see the full card number).
+✅. A card is saved automatically the first time it is used successfully (Paystack authorization; we never see the full card number).
 
 | Endpoint | Notes |
 | --- | --- |
@@ -287,7 +287,7 @@ The **Enter Card Details** screen in the design should be replaced by Paystack's
 
 Figma: *My Orders, Order Status (tracking map), Delivery Confirmed!, Rate your experience, EMPTY STATES*
 
-All 🔨 **Stage 5**.
+All ✅ live.
 
 ### Order status
 
@@ -320,7 +320,7 @@ Payment state (`escrowStatus`): `held` → `released` (seller and rider paid) or
 Listen to **`orders/{orderId}`** (Firestore). It holds `status`, `timeline`, and while a rider is on the way:
 
 ```json
-"tracking": { "riderLocation": { "lat": 6.45, "lng": 3.43 }, "heading": 120, "updatedAt": "…", "distanceKm": 1.2, "etaMinutes": 8 }
+"tracking": { "riderLocation": { "lat": 6.45, "lng": 3.43 }, "heading": 120, "target": "store" | "buyer", "updatedAt": "…", "distanceKm": 1.2, "etaMinutes": 8 }
 ```
 
 - Draw the store, the delivery address and the rider's pin with `google_maps_flutter`; move the pin as the document changes.
@@ -332,7 +332,7 @@ Listen to **`orders/{orderId}`** (Firestore). It holds `status`, `timeline`, and
 
 Figma: *New Order Notification (Seller), SELLERS DASHBOARD, Recent Orders, tabs New / In Progress / Ready / Completed*
 
-All 🔨 **Stage 5**.
+All ✅ live.
 
 | Endpoint | Screen | Notes |
 | --- | --- | --- |
@@ -344,7 +344,7 @@ All 🔨 **Stage 5**.
 | `POST /seller/orders/{id}/ready` | Mark as Ready for Pickup | Riders nearby are offered the job |
 | `GET /seller/dashboard` | Dashboard | `todayEarningsKobo`, `monthEarningsKobo`, `todayOrders`, `todayOrdersChangePct` ("+12%"), `pendingOrders`, `activeProducts`, `lowStockItems`, `weeklySales: [{ "day": "mon", "amountKobo" }]`, `recentOrders[]` |
 
-**New-order pop-up:** a push notification (`type: "new_order"`) plus, while the app is open, listen to `sellerInbox/{storeId}` whose `latestOrder` changes when an order arrives.
+**New-order pop-up:** a push notification (`type: "new_order"`, with `orderId`). While the app is open, also refresh `GET /seller/orders?status=new` when that push arrives (or every 30 s on the orders screen).
 
 ---
 
@@ -352,7 +352,7 @@ All 🔨 **Stage 5**.
 
 Figma: *DRIVER'S DASHBOARD, DRIVER ACTIVE DELIVERY FLOW, Delivery Complete, EARNINGS, You're offline*
 
-All 🔨 **Stage 6**. Only approved riders.
+All ✅ live. Only approved riders.
 
 | Endpoint | Screen | Notes |
 | --- | --- | --- |
@@ -367,30 +367,35 @@ All 🔨 **Stage 6**. Only approved riders.
 | `POST /rider/deliveries/{orderId}/delivered` | Delivered | `{ "proofPhotoFileId"?, "dropOffCode"? }`. Order → `delivered`; the buyer is asked to confirm. |
 | `GET /rider/earnings?range=week\|month\|all` | My Earnings | `totalCareerKobo`, `weekTotalKobo`, `byDay[]`, `transactions[]` (order, buyer, pay, bonus, status `paid`/`pending`) |
 
-The rider's pay for a delivery (delivery pay + bonus) is credited to their wallet when the buyer confirms (or the 48-hour auto-confirm), as on "Delivery Complete".
+The rider's pay for a delivery (delivery pay + bonus) is credited to their wallet when the buyer confirms, as on "Delivery Complete". If the buyer never confirms, the order is released automatically 48 hours after delivery (checked once a day).
 
-Job offers arrive as push notifications (`type: "job_offer"`); the Available Jobs list also updates live from `riderJobs/{riderUid}`.
+Job offers arrive as push notifications (`type: "job_offer"`, with `orderId`). While Available Jobs is open, refresh `GET /rider/jobs` when that push arrives (or every 15 s).
 
 ---
 
-## 10. Messages, calls and support (all apps)
+## 10. Messages and support (all apps)
 
-Figma: *MESSAGE SCREEN, USER CHATTING WITH SELLER, INCOMING CALL, Voice Call / Switch to Video, Message empty states, Help & Support*
+Figma: *MESSAGE SCREEN, USER CHATTING WITH SELLER, Message empty states, Help & Support*
 
-Chat is 🔨 **Stage 7**; calls are 🔨 **Stage 9**.
+All ✅ live. Voice/video calls (*INCOMING CALL, Voice Call / Switch to Video*) are **not planned for now**: hide the call buttons.
 
-Each order has up to three threads: buyer↔seller, buyer↔rider, and seller↔rider. Support (buyer, seller or rider ↔ Vorapicks admins) is one thread per person, answered from the admin website.
+Each order has up to three threads: buyer↔seller, buyer↔rider and seller↔rider (the rider ones once a rider has accepted the job). Support (buyer, seller or rider ↔ Vorapicks admins) is one thread per person, answered from the admin website.
 
 | Endpoint | Notes |
 | --- | --- |
-| `GET /conversations?type=seller\|rider\|support&cursor=` | Message list tabs (Seller / Driver / Admin): `counterpart` (name, photo, role), `orderNumber`, `lastMessage`, `lastMessageAt`, `unreadCount` |
-| `POST /conversations` | `{ "orderId", "with": "seller"\|"rider" }` or `{ "type": "support" }` → existing or new conversation |
-| `POST /conversations/{id}/messages` | `{ "text"?, "attachmentFileId"?, "clientId": "uuid" }` (`clientId` stops double-sends) |
-| `POST /conversations/{id}/read` | Clears the unread badge |
+| `GET /conversations?type=buyer\|seller\|rider\|support&cursor=` | Message list tabs (buyers: Seller / Driver / Admin). Each item: `id`, `type` (the other side's role), `counterpart` (`name`, `photoUrl`, `role`), `orderNumber`, `lastMessage` (`text`, `mine`), `lastMessageAt`, `unreadCount`, `closed`. Also `totalUnread` and `unreadByType` for the tab badges. |
+| `POST /conversations` | `{ "orderId", "with": "seller"\|"rider"\|"buyer" }` or `{ "type": "support", "orderId"? }` → the existing or a new conversation (same shape as a list item) |
+| `GET /conversations/{id}` | Chat header |
+| `GET /conversations/{id}/messages?limit=30&cursor=` | Newest first. Each: `id`, `mine`, `senderRole`, `text`, `attachmentUrl` (short-lived link), `createdAt`, `time` ("10:22 AM"). Pass `nextCursor` to load older ones. |
+| `POST /conversations/{id}/messages` | `{ "text"?, "attachmentFileId"?, "clientId": "uuid" }`. Upload attachments first with purpose `chat_attachment`. Re-sending the same `clientId` (e.g. after a timeout) is safe: it is stored once. |
+| `POST /conversations/{id}/read` | Clears the unread badge; call when the chat opens and when a new message arrives while it is open |
 
-**Live:** listen to `conversations/{id}/messages` ordered by `createdAt` for new messages, and to `users/{uid}/inbox/summary` for the unread badge on the Messages tab.
+The other side gets a push `type: "message"` with `conversationId` and `orderId`.
 
-**Voice and video calls** need a calling provider (Agora or ZEGOCLOUD; decision pending). The API will hand out a short-lived call token: `POST /calls` `{ "conversationId", "video": false }` → `{ "channel", "token", "appId" }`, and the other side gets a push `type: "incoming_call"`. Phone numbers are never exchanged.
+**Live:**
+- Order chats: listen to `chats/{conversationId}/messages` ordered by `createdAt`. Each document: `senderId`, `text`, `attachmentFileId`, `createdAt`. (Use `GET …/messages` for attachment links.)
+- Support: listen to the document `conversations/support-{yourUid}`; its `messages` array grows as admins reply.
+- Unread badge on the Messages tab: `users/{uid}/inbox/summary` → `unread`.
 
 ---
 
@@ -398,7 +403,7 @@ Each order has up to three threads: buyer↔seller, buyer↔rider, and seller↔
 
 Figma: *VORAPICKS WALLET, ADD MONEY TO VORAPICK WALLET, CREDIT/DEBIT HISTORY, Withdraw Earnings, Withdrawal Initiated!*
 
-All 🔨 **Stage 4** (wallet and top-up) and **Stage 6** (withdrawals).
+All ✅ live.
 
 | Endpoint | Screen | Notes |
 | --- | --- | --- |
@@ -418,10 +423,10 @@ Figma: *Alerts (seller), New Order Received, Split the bill pop-up, incoming cal
 
 | Endpoint | Status | Notes |
 | --- | --- | --- |
-| `POST /me/devices` | 🔨 Stage 1 | `{ "token": "<FCM token>", "platform": "android"\|"ios" }` on every launch and when the token refreshes |
-| `POST /me/devices/{id}/remove` | 🔨 Stage 1 | On sign-out |
-| `GET /notifications?cursor=` | 🔨 Stage 5 | In-app list (Alerts): `title`, `body`, `type`, `data`, `read`, `createdAt` |
-| `POST /notifications/read` | 🔨 Stage 5 | `{ "ids": [ … ] }` or `{ "all": true }` |
+| `POST /me/devices` | ✅ | `{ "token": "<FCM token>", "platform": "android"\|"ios" }` on every launch and when the token refreshes |
+| `POST /me/devices/{id}/remove` | ✅ | On sign-out |
+| `GET /notifications?cursor=` | ✅ | In-app list (Alerts): `title`, `body`, `type`, `data`, `read`, `createdAt` |
+| `POST /notifications/read` | ✅ | `{ "ids": [ … ] }` or `{ "all": true }` |
 
 Every push carries `data.type` and IDs so a tap opens the right screen:
 
@@ -431,7 +436,6 @@ Every push carries `data.type` and IDs so a tap opens the right screen:
 | `new_order` | Seller | Seller order (`orderId`) |
 | `job_offer` | Nearby riders | Available Jobs (`orderId`) |
 | `message` | Anyone | Conversation (`conversationId`) |
-| `incoming_call` | Anyone | Call screen (`callId`) |
 | `split_invite`, `split_update` | Split participants | Split the bill (`splitId`) |
 | `shopping_request`, `shopping_suggestions` | Sellers / buyer | Personal shopping (`requestId`) |
 | `payment` | Anyone | Wallet / order |
@@ -444,13 +448,13 @@ Every push carries `data.type` and IDs so a tap opens the right screen:
 
 Figma: *SPLIT THE BILL SCREEN, Split the Bill Invitation Flow, Group Orders, Split History, 2 Split Requests Pending*
 
-All 🔨 **Stage 8**.
+All ✅ live.
 
 1. The organiser builds the cart, taps **Split the Bill**, picks a method and adds people (Vorapicks users, found by email or phone).
-2. `POST /splits` `{ "method": "equal"\|"custom"\|"percent", "participants": [{ "email"\|"phone", "amountKobo"\|"percent" }], "checkout": { …same as POST /checkout without paymentMethod… } }` → split with each person's share; invitations go out (push `split_invite`).
+2. `POST /splits` `{ "method": "equal"\|"custom"\|"percent", "participants": [{ "email"\|"phone", "amountKobo"\|"percent" }], "addressId", "deliverySlot"?, "note"? }` (the delivery fields are the same as `POST /checkout`, without `paymentMethod`) → split with each person's share; invitations go out (push `split_invite`).
 3. Each person (organiser included) pays their own share: `POST /splits/{id}/pay` `{ "paymentMethod", "savedCardId"? }` (same payment flow as checkout).
-4. Invitees can `POST /splits/{id}/accept` or `/decline`. A decline lets the organiser re-assign or cover that share.
-5. When every share is paid the order is placed automatically. If it isn't fully paid in **24 hours** (or the organiser taps **Cancel Split**: `POST /splits/{id}/cancel`), everyone who paid is refunded to their wallet.
+4. Invitees can `POST /splits/{id}/accept` or `/decline`. A declined share moves to the organiser.
+5. When every share is paid the order is placed automatically and the items leave the organiser's cart. If it isn't fully paid in **24 hours** (or the organiser taps **Cancel Split**: `POST /splits/{id}/cancel`), everyone who paid is refunded to their wallet.
 
 | Endpoint | Screen |
 | --- | --- |
@@ -465,15 +469,16 @@ Live: `splits/{id}` in Firestore.
 
 Figma: *BUYER REQUEST FOR PERSONAL SHOPPER, Make a Shopping Request, Request Submitted!, PERSONAL SHOPPERS (seller)*
 
-All 🔨 **Stage 8**.
+All ✅ live.
 
 | Endpoint | Who | Notes |
 | --- | --- | --- |
-| `POST /shopping-requests` | Buyer | `{ "description": "≤500 chars", "budgetKobo"?, "neededBy": "2026-11-12T16:00:00+01:00", "addressId" }` → sent to sellers in the area |
-| `GET /shopping-requests` · `GET /shopping-requests/{id}` | Buyer | Status `open` → `suggestions_received` → `accepted` / `closed`; sellers' suggestions grouped by seller |
-| `POST /shopping-requests/{id}/accept` | Buyer | `{ "sellerId", "suggestionIds": [ … ] }` → those items go into the cart from that seller, then normal checkout |
-| `GET /seller/shopping-requests?status=pending\|sent\|approved` | Seller | Requests list with buyer name, area, budget, deadline |
-| `POST /seller/shopping-requests/{id}/suggestions` | Seller | `{ "name": "Red Onions (2kg)", "priceKobo", "unit", "note"?: "Large and firm", "productId"? }` |
+| `POST /shopping-requests` | Buyer | `{ "description": "5–500 chars", "budgetKobo"?, "neededBy": "2026-11-12T16:00:00+01:00", "addressId" }` (at least 30 min ahead) → sent to the nearest sellers who deliver there; `data.sellersNotified` |
+| `GET /shopping-requests` · `GET /shopping-requests/{id}` | Buyer | Status `open` → `suggestions_received` → `accepted` / `closed` (closed automatically once `neededBy` passes). Detail has `offers[]`: `seller` (`id`, `name`, `logoUrl`), `suggestions[]` (`id`, `name`, `priceKobo`, `unit`, `note`, `photoUrl`), `totalKobo` |
+| `POST /shopping-requests/{id}/accept` | Buyer | `{ "sellerId", "suggestionIds": [ … ], "quantities"?: { "<suggestionId>": 2 } }` → those items go into the cart (returned as `data.cart`), then normal checkout |
+| `POST /shopping-requests/{id}/close` | Buyer | No longer needed |
+| `GET /seller/shopping-requests?status=pending\|sent\|approved&cursor=` | Seller | Tabs with `data.counts`. Each: `buyer.name`, `description`, `area`, `budgetKobo`, `neededBy`, `status` (`pending`, `sent`, `approved`, `not_selected`, `closed`), the seller's own `suggestions[]`, `totalKobo`. `GET /seller/shopping-requests/{id}` for one. |
+| `POST /seller/shopping-requests/{id}/suggestions` | Seller | `{ "name": "Red Onions (2kg)", "priceKobo", "unit", "note"?: "Large and firm", "productId"? }`. `productId` links one of the seller's published products; otherwise a one-off item is made for this buyer only. Editable until sent. |
 | `DELETE /seller/shopping-requests/{id}/suggestions/{sid}` | Seller | |
 | `POST /seller/shopping-requests/{id}/send` | Seller | Sends the suggestions to the buyer (push `shopping_suggestions`) |
 
@@ -481,21 +486,25 @@ The resulting order then follows the normal seller order flow (New → Accept �
 
 ---
 
-## 15. Build stages
+## 15. Build stages and launch checklist
 
-Each stage is finished, tested on `vorapicks-dev` and marked ✅ here before the next one starts.
+| Stage | Contents | Status |
+| --- | --- | --- |
+| 1 | Accounts: unified profile and roles, seller store details, rider personal and vehicle details, payout bank accounts, addresses, preferences, devices, config | ✅ |
+| 2 | File uploads; seller and rider documents; submit for verification; admin review screens | ✅ (needs Firebase Storage, below) |
+| 3 | Catalog: categories, stores, products, menus, search and filters, wishlist, reviews; seller product management | ✅ |
+| 4 | Cart, checkout, Paystack payments (card, bank transfer, wallet), escrow, saved cards, wallet and top-up | ✅ |
+| 5 | Orders: buyer, seller and admin order flow, timeline, confirm delivery, cancel, refunds, reviews, disputes, notifications | ✅ |
+| 6 | Riders: online status, location, job offers, delivery steps, live tracking, earnings, withdrawals | ✅ |
+| 7 | Chat: order conversations and support | ✅ |
+| 8 | Split the bill; personal shopping | ✅ |
+| 9 | Voice/video calls; Vora AI assistant | Not planned for now |
 
-| Stage | Contents |
-| --- | --- |
-| 1 | Accounts: unified profile and roles, seller store details, rider personal and vehicle details, payout bank accounts, addresses, preferences, devices, config |
-| 2 | File uploads; seller and rider documents; submit for verification; admin review screens |
-| 3 | Catalog: categories, stores, products, menus, search and filters, wishlist, reviews; seller product management |
-| 4 | Cart, checkout, Paystack payments (card, bank transfer, wallet), escrow, saved cards, wallet and top-up |
-| 5 | Orders: buyer, seller and admin order flow, timeline, confirm delivery, cancel, refunds, reviews, disputes, notifications |
-| 6 | Riders: online status, location, job offers, delivery steps, live tracking, earnings, withdrawals |
-| 7 | Chat: order conversations and support |
-| 8 | Split the bill; personal shopping |
-| 9 | Voice/video calls; Vora AI assistant |
+Before launch (Vorapicks team):
+- **Firebase Storage** must be switched on in the Firebase console; until then `POST /uploads` fails.
+- **Firestore rules** for the live feeds above are published with `pnpm db:rules`.
+- **Paystack:** the webhook URL `https://vorapicks.com/api/v1/paystack/webhook` is set in the Paystack dashboard (test and live). Test with Paystack's test cards first. Card checks charge ₦50, which goes to the buyer's wallet.
+- **Housekeeping** (auto-release after 48 h, expiring splits, closing old shopping requests) runs once a day via Vercel Cron and needs the `CRON_SECRET` environment variable in Vercel.
 
 ## 16. Open questions (for the business owner)
 
@@ -506,8 +515,6 @@ Each stage is finished, tested on `vorapicks-dev` and marked ✅ here before the
 | Delivery fee | ₦500 base + ₦100 per km beyond 3 km |
 | Rider pay per delivery | 80% of the delivery fee, plus bonuses set by admins |
 | Delivery area | Lagos only |
-| Calling provider (voice/video) | To be chosen (Agora or ZEGOCLOUD) |
-| Vora AI assistant | Answers questions and looks up the buyer's own orders; provider to be confirmed |
 | Phone SMS verification | Firebase phone auth (paid per SMS beyond the free allowance) |
 
 These numbers live in admin settings, not in the app: the app always shows the fees the API returns.

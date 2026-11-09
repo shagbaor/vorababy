@@ -4,6 +4,7 @@
 import { cert, initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
+import { getSecurityRules } from 'firebase-admin/security-rules'
 
 for (const name of ['FIREBASE_PROJECT_ID', 'FIREBASE_CLIENT_EMAIL', 'FIREBASE_PRIVATE_KEY']) {
   if (!process.env[name]) {
@@ -24,3 +25,4 @@ const app = initializeApp({
 
 export const auth = getAuth(app)
 export const db = getFirestore(app)
+export const securityRules = getSecurityRules(app)

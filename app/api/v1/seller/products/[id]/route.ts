@@ -12,7 +12,7 @@ type Context = { params: Promise<{ id: string }> }
 async function ownProduct(uid: string, id: string) {
   const ref = db().collection('products').doc(id)
   const snapshot = await ref.get()
-  if (!snapshot.exists || snapshot.get('storeId') !== uid || snapshot.get('status') === 'deleted') throw new ApiError('not_found', 'Product not found')
+  if (!snapshot.exists || snapshot.get('storeId') !== uid || ['deleted', 'custom'].includes(snapshot.get('status'))) throw new ApiError('not_found', 'Product not found')
   return { ref, snapshot }
 }
 

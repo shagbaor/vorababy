@@ -50,7 +50,7 @@ export async function readForPlacement(tx: Transaction, drafts: OrderDraft[]) {
     productIds.length ? tx.getAll(...productIds.map((id) => db().collection('products').doc(id))) : [],
     tx.get(db().collection('meta').doc('counters')),
   ])
-  const stock = new Map(products.map((p) => [p.id, p.exists && p.get('status') === 'published' ? ((p.get('stock') as number) ?? 0) : 0]))
+  const stock = new Map(products.map((p) => [p.id, p.exists && ['published', 'custom'].includes(p.get('status')) ? ((p.get('stock') as number) ?? 0) : 0]))
   const shortages = drafts.flatMap((d) => d.lines.filter((l) => (stock.get(l.productId) ?? 0) < l.quantity).map((l) => l.name))
   return { shortages, counter: (counter.get(`orders${new Date().getFullYear()}`) as number | undefined) ?? 0 }
 }

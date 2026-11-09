@@ -13,6 +13,7 @@ import { applyAction, collectionFor, MAX_MESSAGE_LENGTH, type AdminAction } from
 import type { AdminAccount, AdminUser } from '@/lib/admin/mock-data'
 import { validateProfile } from '@/lib/users'
 import { notify } from '@/lib/server/notify'
+import { supportReplied } from '@/lib/server/chat'
 
 type FieldError<F extends string> = { ok: false; field: F; message: string }
 
@@ -387,6 +388,9 @@ async function syncAuth(action: AdminAction, item: Record<string, unknown>) {
             : 'We could not approve your account yet. Check your details in the app and submit again.',
         )
       }
+    } else if (action.type === 'conversation/send') {
+      // The app user sees the reply in Messages → Admin and gets a push.
+      await supportReplied(action.id, action.text)
     } else if (action.type === 'user/update') {
       await auth.updateUser(action.id, { displayName: action.name })
     } else if (action.type.startsWith('admin/')) {

@@ -1,9 +1,44 @@
 rules_version = '2';
 
-// All reads and writes go through the Next.js server (Firebase Admin SDK), which
-// bypasses these rules. Clients, including the Flutter app, get no direct access.
+// Every write goes through the Next.js API (Firebase Admin SDK), which bypasses
+// these rules. Apps may only READ the documents they listen to for live
+// updates (docs/mobile-api.md, "Live data"), and only their own.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+
+    // Profile (wallet balance), notifications and the Messages badge.
+    match /users/{uid} {
+      allow get: if signedIn() && uid == me();
+      match /notifications/{id} { allow read: if signedIn() && uid == me(); }
+      match /inbox/{id} { allow get: if signedIn() && uid == me(); }
+    }
+
+    // Order tracking: the buyer, the seller (store id = seller uid) and the rider.
+    match /orders/{orderId} {
+      allow get: if signedIn() && me() in [resource.data.buyerId, resource.data.storeId, resource.data.riderId];
+    }
+
+    // Order chats.
+    match /chats/{chatId} {
+      allow get: if signedIn() && me() in resource.data.participantIds;
+      match /messages/{messageId} {
+        allow read: if signedIn() && me() in get(/databases/$(database)/documents/chats/$(chatId)).data.participantIds;
+      }
+    }
+
+    // Support thread.
+    match /conversations/{id} {
+      allow get: if signedIn() && resource.data.userId == me();
+    }
+
+    // Split the bill.
+    match /splits/{id} {
+      allow get: if signedIn() && me() in resource.data.participantIds;
+    }
+
+    // Everything else: no direct access.
     match /{document=**} {
       allow read, write: if false;
     }

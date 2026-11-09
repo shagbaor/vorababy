@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "db:seed": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/seed.mjs",
-    "admin:approve": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/approve-admin.mjs"
+    "admin:approve": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/approve-admin.mjs",
+    "db:rules": "node --env-file-if-exists=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/deploy-rules.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
