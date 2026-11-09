@@ -1,10 +1,13 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useId, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { AppleIcon, ArrowDown01Icon, ArrowLeft02Icon, LockIcon, ViewIcon, ViewOffIcon } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
+import { signInWithGoogle } from '@/app/admin/actions'
+import { googleIdToken, useFirebaseConfig } from '@/lib/firebase/client'
 
 export type FieldState = 'default' | 'error' | 'success'
 
@@ -195,8 +198,41 @@ function GoogleLogo() {
   )
 }
 
+const GOOGLE_ERRORS: Record<string, string> = {
+  'auth/popup-blocked': 'Your browser blocked the Google window. Allow pop-ups for this site and try again.',
+  'auth/operation-not-allowed': 'Google sign-in is not switched on yet.',
+  'auth/unauthorized-domain': 'Google sign-in is not allowed on this web address yet.',
+  'auth/account-exists-with-different-credential': 'This email already has an account. Sign in with your email and password.',
+  'auth/network-request-failed': 'Network error. Check your connection and try again.',
+}
+
 export function SocialSignIn() {
-  const [notice, setNotice] = useState<string | null>(null)
+  const router = useRouter()
+  const config = useFirebaseConfig()
+  const [notice, setNotice] = useState<{ tone: 'info' | 'error'; text: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function continueWithGoogle() {
+    if (!config?.apiKey || busy) return
+    setBusy(true)
+    setNotice(null)
+    try {
+      const result = await signInWithGoogle(await googleIdToken(config))
+      if (result.ok) {
+        const next = new URLSearchParams(window.location.search).get('next')
+        router.replace(next?.startsWith('/admin') ? next : '/admin')
+        router.refresh()
+        return
+      }
+      setNotice({ tone: result.requested ? 'info' : 'error', text: result.message })
+    } catch (error) {
+      const code = (error as { code?: string }).code ?? ''
+      if (code !== 'auth/popup-closed-by-user' && code !== 'auth/cancelled-popup-request') {
+        setNotice({ tone: 'error', text: GOOGLE_ERRORS[code] ?? 'Google sign-in failed. Try again.' })
+      }
+    }
+    setBusy(false)
+  }
 
   return (
     <div className="flex flex-col gap-[15px]">
@@ -205,23 +241,26 @@ export function SocialSignIn() {
         Or
         <span className="h-px flex-1 bg-[#e5e5e5]" />
       </div>
-      {[
-        { label: 'Continue with Google', icon: <GoogleLogo /> },
-        { label: 'Continue with Apple', icon: <HugeiconsIcon icon={AppleIcon} size={22} strokeWidth={1.5} className="text-black" /> },
-      ].map(({ label, icon }) => (
-        <button
-          key={label}
-          type="button"
-          onClick={() => setNotice(`${label.replace('Continue with ', '')} sign-in isn't connected yet.`)}
-          className="flex h-[45px] items-center justify-center gap-4 rounded-[20px] bg-[#f4f4f4] text-[14px] text-black transition-colors hover:bg-[#ececec]"
-        >
-          {icon}
-          {label}
-        </button>
-      ))}
+      <button
+        type="button"
+        onClick={continueWithGoogle}
+        disabled={busy}
+        className="flex h-[45px] items-center justify-center gap-4 rounded-[20px] bg-[#f4f4f4] text-[14px] text-black transition-colors hover:bg-[#ececec] disabled:opacity-60"
+      >
+        <GoogleLogo />
+        {busy ? 'Connecting to Google…' : 'Continue with Google'}
+      </button>
+      <button
+        type="button"
+        onClick={() => setNotice({ tone: 'info', text: "Apple sign-in isn't connected yet." })}
+        className="flex h-[45px] items-center justify-center gap-4 rounded-[20px] bg-[#f4f4f4] text-[14px] text-black transition-colors hover:bg-[#ececec]"
+      >
+        <HugeiconsIcon icon={AppleIcon} size={22} strokeWidth={1.5} className="text-black" />
+        Continue with Apple
+      </button>
       {notice && (
-        <p role="status" className="text-center text-[12px] text-black/50">
-          {notice}
+        <p role="status" className={cn('text-center text-[12px]', notice.tone === 'error' ? 'text-[#e62b2b]' : 'text-[#2a8d36]')}>
+          {notice.text}
         </p>
       )}
     </div>

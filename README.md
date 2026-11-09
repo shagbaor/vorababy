@@ -22,6 +22,7 @@ pnpm dev                     # http://localhost:3000
 ## Admin app (`/admin`)
 
 - **Admin sign-up** at `/admin/signup` creates a Firebase Auth user and a pending `admins/{uid}` record. The phone check on that screen is still a demo (code `2314`); no SMS is sent.
+- **Google sign-in:** "Continue with Google" on the login and sign-up pages. The first time someone uses it, it files a pending admin request (no phone step); once approved, the same button signs them in. It needs the Google provider switched on in Firebase Authentication, and the site's domain listed under Authentication → Settings → Authorized domains.
 - **Approving admins:** pending sign-ups appear on the dashboard and under **Admin Team** (`/admin/team`), where any admin can approve, reject, remove or restore access. Admins cannot remove themselves. The very first admin has to be approved from the command line:
 
   ```bash

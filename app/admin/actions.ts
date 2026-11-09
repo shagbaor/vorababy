@@ -45,7 +45,13 @@ export async function signIn(email: string, password: string): Promise<SignInRes
     return SIGN_IN_ERRORS[code] ?? { ok: false, field: 'password', message: 'Sign-in failed. Try again.' }
   }
 
-  const token = await adminAuth().verifyIdToken(body.idToken)
+  return startSession(body.idToken)
+}
+
+// Shared by password and Google sign-in: only approved admins get a session;
+// everyone else learns where their account stands.
+async function startSession(idToken: string): Promise<SignInResult> {
+  const token = await adminAuth().verifyIdToken(idToken)
   if (token.admin !== true) {
     const status = (await db().collection(COLLECTIONS.admins).doc(token.uid).get()).get('status')
     const message =
@@ -59,7 +65,7 @@ export async function signIn(email: string, password: string): Promise<SignInRes
     return { ok: false, field: 'email', message }
   }
 
-  const session = await adminAuth().createSessionCookie(body.idToken, { expiresIn: SESSION_MAX_AGE * 1000 })
+  const session = await adminAuth().createSessionCookie(idToken, { expiresIn: SESSION_MAX_AGE * 1000 })
   ;(await cookies()).set(SESSION_COOKIE, session, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -68,6 +74,44 @@ export async function signIn(email: string, password: string): Promise<SignInRes
     maxAge: SESSION_MAX_AGE,
   })
   return { ok: true }
+}
+
+// Google sign-in (login and sign-up pages). A Google account seen for the first
+// time becomes a pending admin request, like the sign-up form; approved admins
+// are signed straight in.
+export type GoogleSignInResult = { ok: true } | { ok: false; message: string; requested?: boolean }
+
+export async function signInWithGoogle(idToken: string): Promise<GoogleSignInResult> {
+  if (typeof idToken !== 'string' || !idToken) return { ok: false, message: 'Google sign-in failed. Try again.' }
+
+  let token
+  try {
+    token = await adminAuth().verifyIdToken(idToken)
+  } catch {
+    return { ok: false, message: 'Google sign-in failed. Try again.' }
+  }
+  if (token.firebase.sign_in_provider !== 'google.com') return { ok: false, message: 'Google sign-in failed. Try again.' }
+
+  const ref = db().collection(COLLECTIONS.admins).doc(token.uid)
+  if (token.admin !== true && !(await ref.get()).exists) {
+    const fullName = (token.name as string | undefined)?.trim() || token.email?.split('@')[0] || 'New admin'
+    await ref.create({
+      fullName,
+      email: token.email ?? '',
+      phone: '',
+      provider: 'google',
+      status: 'pending',
+      createdAt: FieldValue.serverTimestamp(),
+    })
+    return {
+      ok: false,
+      requested: true,
+      message: 'Request sent. You can sign in with Google once a Vorapicks admin approves your account.',
+    }
+  }
+
+  const result = await startSession(idToken)
+  return result.ok ? result : { ok: false, message: result.message }
 }
 
 export async function signOut() {
