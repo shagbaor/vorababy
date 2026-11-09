@@ -5,7 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore'
 import { adminAuth, db, webApiKey } from '@/lib/firebase/admin'
 import { getAdminSession } from '@/lib/admin/session'
 import { allowAttempt } from '@/lib/admin/rate-limit'
-import { COLLECTIONS } from '@/lib/admin/data'
+import { COLLECTIONS, DEFAULT_COMMISSION_RATE } from '@/lib/admin/data'
 import { EMAIL_PATTERN, passwordValid, SESSION_COOKIE, SESSION_MAX_AGE } from '@/lib/admin/auth'
 import { applyAction, collectionFor, MAX_MESSAGE_LENGTH, type AdminAction } from '@/lib/admin/admin-actions'
 import type { AdminAccount, AdminUser } from '@/lib/admin/mock-data'
@@ -286,6 +286,10 @@ export async function applyAdminAction(action: AdminAction): Promise<ActionResul
   }
 
   const ref = db().collection(COLLECTIONS[collectionFor(action)]).doc(action.id)
+  const commissionRate =
+    action.type === 'order/release'
+      ? (((await db().collection(COLLECTIONS.meta).doc('settings').get()).get('commissionRate') as number | undefined) ?? DEFAULT_COMMISSION_RATE)
+      : 0
   const result = await db().runTransaction(async (transaction) => {
     const snapshot = await transaction.get(ref)
     if (!snapshot.exists) return null
@@ -297,7 +301,15 @@ export async function applyAdminAction(action: AdminAction): Promise<ActionResul
       )
       if (supers.data().count <= 1) return 'last-super' as const
     }
-    transaction.set(ref, { ...next, updatedAt: FieldValue.serverTimestamp(), updatedBy: session.uid })
+    // Releasing an order is when Vorapicks earns its commission; record when,
+    // and how much, for the earnings figures.
+    const money =
+      action.type === 'order/release' && snapshot.get('status') !== 'released'
+        ? { releasedAt: FieldValue.serverTimestamp(), platformFee: Math.round((snapshot.get('amount') as number) * commissionRate) }
+        : action.type === 'order/refund' && snapshot.get('status') !== 'refunded'
+          ? { refundedAt: FieldValue.serverTimestamp(), platformFee: 0 }
+          : {}
+    transaction.set(ref, { ...next, ...money, updatedAt: FieldValue.serverTimestamp(), updatedBy: session.uid })
     return { ...next, id }
   })
   if (!result) return { ok: false, error: 'Not found' }

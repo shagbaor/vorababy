@@ -23,6 +23,7 @@ import { DisputeCard } from '@/components/admin/dispute-card'
 import { EmptyState } from '@/components/admin/ui'
 import { signOut } from '@/app/admin/actions'
 import { formatNaira, formatNairaCompact } from '@/lib/admin/format'
+import type { DashboardMetrics } from '@/lib/admin/data'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
@@ -38,11 +39,27 @@ export default function AdminDashboardPage() {
     { label: 'Resolved Disputes', value: resolvedDisputes, icon: Briefcase03Icon },
   ]
 
+  const { ordersToday, ordersYesterday } = dashboard
+  const ordersBadge =
+    ordersYesterday > 0
+      ? { text: `${ordersToday >= ordersYesterday ? '+' : ''}${Math.round(((ordersToday - ordersYesterday) / ordersYesterday) * 100)}%`, title: 'Compared with yesterday', down: ordersToday < ordersYesterday }
+      : null
+
   const overview = [
-    { label: 'Orders Today', change: dashboard.ordersToday.change, icon: Invoice01Icon, display: String(dashboard.ordersToday.value) },
-    { label: 'Active Disputes', change: dashboard.activeDisputesChange, icon: CustomerService01Icon, display: String(activeDisputes.length) },
-    { label: 'Fees Held', change: dashboard.feesHeld.change, icon: Coins01Icon, display: formatNairaCompact(dashboard.feesHeld.value) },
-    { label: 'Total Users', change: dashboard.totalUsers.change, icon: UserIcon, display: dashboard.totalUsers.value.toLocaleString() },
+    { label: 'Orders Today', badge: ordersBadge, icon: Invoice01Icon, display: String(ordersToday) },
+    {
+      label: 'Active Disputes',
+      badge: dashboard.disputesOpenedToday > 0 ? { text: `+${dashboard.disputesOpenedToday} today`, down: true } : null,
+      icon: CustomerService01Icon,
+      display: String(activeDisputes.length),
+    },
+    { label: 'Held in Escrow', badge: null, icon: Coins01Icon, display: formatNairaCompact(dashboard.escrowHeld) },
+    {
+      label: 'Total Users',
+      badge: dashboard.newUsersThisWeek > 0 ? { text: `+${dashboard.newUsersThisWeek} this week`, down: false } : null,
+      icon: UserIcon,
+      display: dashboard.totalUsers.toLocaleString(),
+    },
   ]
 
   const quickActions = adminSections.filter((section) => section.actionIcon)
@@ -116,11 +133,8 @@ export default function AdminDashboardPage() {
           </Link>
         )}
 
-        {/* Revenue */}
-        <section className="rounded-3xl bg-[#2e8b57] p-[21px]">
-          <p className="text-xs font-medium leading-4 text-[#f3f4f6]">Total Platform Revenue</p>
-          <p className="mt-0.5 text-[32px] font-bold leading-9 text-white">{formatNaira(dashboard.platformRevenue)}</p>
-        </section>
+        {/* Earnings: only sent to super admins */}
+        {dashboard.earnings && <EarningsCard earnings={dashboard.earnings} />}
 
         {/* Platform stats */}
         <section className="grid grid-cols-3 rounded-3xl border border-[#f3f4f6] bg-white p-[17px]">
@@ -162,16 +176,23 @@ export default function AdminDashboardPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold leading-6 text-[#1e1e1e]">Today&apos;s Overview</h2>
           <div className="grid grid-cols-2 gap-x-[13px] gap-y-2">
-            {overview.map(({ label, display, change, icon }) => (
+            {overview.map(({ label, display, badge, icon }) => (
               <div key={label} className="flex h-[150px] flex-col rounded-xl border border-[#e5e7eb] bg-white p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex size-10 items-center justify-center rounded-lg bg-[#7ed953]/10 text-[#4caf50]">
                     <HugeiconsIcon icon={icon} size={24} strokeWidth={1.5} />
                   </div>
-                  <span className="rounded-full bg-[#10b981]/10 px-2 py-1 text-xs leading-4 text-[#10b981]">
-                    {change > 0 ? '+' : ''}
-                    {change}%
-                  </span>
+                  {badge && (
+                    <span
+                      title={'title' in badge ? badge.title : undefined}
+                      className={cn(
+                        'whitespace-nowrap rounded-full px-2 py-1 text-[11px] leading-4',
+                        badge.down ? 'bg-[#ef4444]/10 text-[#dc2626]' : 'bg-[#10b981]/10 text-[#10b981]',
+                      )}
+                    >
+                      {badge.text}
+                    </span>
+                  )}
                 </div>
                 <p className="mt-3 text-2xl font-semibold leading-8 text-[#1e1e1e]">{display}</p>
                 <p className="mt-1 truncate text-sm leading-5 text-[#1e1e1e]/60">{label}</p>
@@ -202,5 +223,46 @@ export default function AdminDashboardPage() {
         </section>
       </div>
     </main>
+  )
+}
+
+function EarningsCard({ earnings }: { earnings: NonNullable<DashboardMetrics['earnings']> }) {
+  const peak = Math.max(1, ...earnings.byDay.map((d) => d.amount))
+  const todayIndex = (new Date(Date.now() + 60 * 60 * 1000).getUTCDay() + 6) % 7 // Lagos, Monday = 0
+
+  return (
+    <section className="rounded-3xl bg-[#2e8b57] p-[21px] text-white">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium leading-4 text-[#f3f4f6]">Today&apos;s Earnings</p>
+          <p className="mt-0.5 text-[32px] font-bold leading-9">{formatNaira(earnings.today)}</p>
+        </div>
+        <span className="rounded-full bg-white/15 px-2 py-1 text-[10px] font-medium">Super admin</span>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-2xl bg-white/10 px-3 py-2.5">
+          <p className="text-[11px] text-[#e5f5ec]">This Week</p>
+          <p className="text-lg font-semibold">{formatNaira(earnings.thisWeek)}</p>
+        </div>
+        <div className="rounded-2xl bg-white/10 px-3 py-2.5">
+          <p className="text-[11px] text-[#e5f5ec]">All Time</p>
+          <p className="text-lg font-semibold">{formatNaira(earnings.allTime)}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 flex h-20 items-end gap-2" aria-label="Earnings by day this week">
+        {earnings.byDay.map(({ day, amount }, index) => (
+          <div key={day} className="flex flex-1 flex-col items-center gap-1" title={`${day}: ${formatNaira(amount)}`}>
+            <div
+              className={cn('w-full rounded-md', index === todayIndex ? 'bg-white' : 'bg-white/35')}
+              style={{ height: `${Math.max(4, (amount / peak) * 56)}px` }}
+            />
+            <span className={cn('text-[10px]', index === todayIndex ? 'font-semibold' : 'text-[#e5f5ec]')}>{day[0]}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-[10px] text-[#e5f5ec]">Vorapicks&apos; commission on orders released to sellers.</p>
+    </section>
   )
 }

@@ -85,17 +85,6 @@ export type Conversation = {
   messages: ChatMessage[]
 }
 
-// Development seed for Firestore's meta/dashboard document (see DashboardMetrics in data.ts).
-export const seedDashboard = {
-  platformRevenue: 12_840_000,
-  activeSellers: 58,
-  activeRiders: 34,
-  ordersToday: { value: 87, change: 12 },
-  activeDisputesChange: 12,
-  feesHeld: { value: 5_100_000, change: 12 },
-  totalUsers: { value: 892, change: 12 },
-}
-
 export const seedOrders: Order[] = [
   { id: 'ORD-0395', placedAt: 'Mar 26, 09:45 AM', items: 2, progress: 'In Progress', amount: 6_100, status: 'held', flagged: false },
   { id: 'ORD-0392', placedAt: 'Mar 26, 10:10 AM', items: 1, progress: 'New', amount: 5_800, status: 'held', flagged: false },

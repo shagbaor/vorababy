@@ -33,9 +33,10 @@ pnpm dev                     # http://localhost:3000
 
 - **Password reset:** "Forgot password?" (`/admin/forgot-password`) sends Firebase's reset email. The page answers the same whether or not the email has an account, and each network can request 5 an hour.
 - **Sessions** are Firebase session cookies (httpOnly, 7 days), verified on every request together with the `admin` claim (`lib/admin/session.ts`).
-- **Marketplace users** are the buyers, sellers and riders who register through the mobile API (`users/{uid}`, keyed by Firebase uid, newest first). Admins can verify users and edit their name, phone and location. Suspending or banning a user also disables their Firebase account and ends their sessions, so the mobile apps lock them out at once. The dashboard's seller, rider and user counts are live.
+- **Dashboard figures** are calculated from Firestore on every load (`lib/admin/data.ts`): orders today vs yesterday, open disputes, money held in escrow, users, active sellers and riders. **Earnings** (Vorapicks' commission on orders released to sellers; rate in `meta/settings.commissionRate`, default 10%) for today, this week (from Monday, Lagos time) and all time are calculated and sent only for super admins.
+- **Marketplace users** are the buyers, sellers and riders who register through the mobile API (`users/{uid}`, keyed by Firebase uid, newest first). Admins can verify users and edit their name, phone and location. Suspending or banning a user also disables their Firebase account and ends their sessions, so the mobile apps lock them out at once. 
 - **Data** is read from Firestore in `lib/admin/data.ts`. Admin actions go through the `applyAdminAction` server action in `app/admin/actions.ts`, which re-checks the session, validates the input, updates the document in a transaction and mirrors the change onto Firebase Auth. `lib/admin/admin-actions.ts` defines the actions once for both the browser and the server.
-- **Still sample data:** orders, disputes, support conversations and the revenue and order figures, until the mobile apps create real ones. `pnpm db:seed` (dev only) writes them, plus seven sample users with Firebase accounts.
+- **Still sample data:** orders, disputes and support conversations, until the mobile apps create real ones. `pnpm db:seed` (dev only) writes them, plus seven sample users with Firebase accounts.
 
 ## Mobile API (`/api/v1`)
 

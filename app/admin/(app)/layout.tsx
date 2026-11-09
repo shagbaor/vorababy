@@ -11,7 +11,7 @@ export default async function AdminAppLayout({
   children: React.ReactNode
 }>) {
   const session = await requireAdmin()
-  const { dashboard, ...initialState } = await loadAdminData()
+  const { dashboard, ...initialState } = await loadAdminData({ superAdmin: session.superAdmin })
 
   return (
     <AdminStoreProvider initialState={initialState} profile={{ uid: session.uid, name: session.name, initials: session.initials, superAdmin: session.superAdmin }} dashboard={dashboard}>
