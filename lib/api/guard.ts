@@ -43,6 +43,8 @@ export async function requireProfile(request: Request, options: Options = {}): P
   if (options.roles && !options.roles.includes(profile.role)) {
     throw new ApiError('forbidden', `Only ${options.roles.join(' or ')} accounts can do this`)
   }
+  // "Online now" on the store page: the seller used the app in the last few minutes.
+  if (profile.role === 'seller') void db().collection('stores').doc(user.uid).update({ lastSeenAt: new Date() }).catch(() => null)
   if (options.approved && profile.role !== 'buyer' && profile.verificationStatus !== 'approved') {
     throw new ApiError('forbidden', 'Your account is waiting for verification by Vorapicks')
   }

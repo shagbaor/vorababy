@@ -50,6 +50,17 @@ for (const { id, joined, ...profile } of seedUsers) {
 }
 console.log(`users: ${seedUsers.length} (with Firebase accounts)`)
 
+// Product categories (the Categories row and Filter → Categories).
+const categories = [
+  ['vegetables', 'Vegetables', 'farm'], ['fruits', 'Fruits', 'farm'], ['grains', 'Grains', 'farm'], ['dairy', 'Dairy', 'farm'],
+  ['meat', 'Meat', 'farm'], ['poultry', 'Poultry', 'farm'], ['seafood', 'Seafood', 'farm'], ['herbs-spices', 'Herbs & Spices', 'farm'],
+  ['tubers', 'Roots & Tubers', 'farm'], ['snacks', 'Snacks', 'farm'], ['beverages', 'Beverages', 'farm'],
+  ['rice-dishes', 'Rice Dishes', 'restaurants'], ['soups-swallows', 'Soups & Swallows', 'restaurants'], ['grills', 'Grills & BBQ', 'restaurants'],
+  ['sides-snacks', 'Sides & Snacks', 'restaurants'], ['drinks', 'Drinks', 'restaurants'],
+]
+categories.forEach(([id, name, mode], position) => batch.set(db.collection('categories').doc(id), { name, mode, position }))
+console.log(`categories: ${categories.length}`)
+
 batch.set(db.collection('meta').doc('settings'), { commissionRate: COMMISSION_RATE }, { merge: true })
 batch.delete(db.collection('meta').doc('dashboard'))
 await batch.commit()
