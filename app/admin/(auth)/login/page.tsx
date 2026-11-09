@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { AuthHeading, FieldHint, PasswordField, PrimaryButton, SocialSignIn, TextField } from '@/components/admin/auth-fields'
-import { DEMO_ACCOUNT, signIn } from '@/lib/admin/auth'
+import { signIn } from '@/app/admin/actions'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -12,12 +12,21 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<{ field: 'email' | 'password'; message: string } | null>(null)
 
-  const canSubmit = email.trim() !== '' && password !== ''
+  const [submitting, setSubmitting] = useState(false)
 
-  function handleSubmit(event: React.FormEvent) {
+  const canSubmit = email.trim() !== '' && password !== '' && !submitting
+
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
-    const result = signIn(email, password)
+    if (submitting) return
+    setSubmitting(true)
+    const result = await signIn(email, password).catch(() => ({
+      ok: false as const,
+      field: 'password' as const,
+      message: 'Something went wrong. Try again.',
+    }))
     if (!result.ok) {
+      setSubmitting(false)
       setError({ field: result.field, message: result.message })
       return
     }
@@ -81,10 +90,6 @@ export default function AdminLoginPage() {
         <SocialSignIn />
       </div>
 
-      <p className="mt-8 rounded-xl bg-[#f5f6f3] px-3 py-2.5 text-center text-[12px] leading-4 text-black/50">
-        Demo login: <span className="font-medium text-black/70">{DEMO_ACCOUNT.email}</span> /{' '}
-        <span className="font-medium text-black/70">{DEMO_ACCOUNT.password}</span>
-      </p>
     </main>
   )
 }

@@ -3,8 +3,9 @@ import { SESSION_COOKIE } from '@/lib/admin/auth'
 
 const PUBLIC_ADMIN_PATHS = ['/admin/login', '/admin/signup']
 
-// Sends signed-out visitors to the admin login page. The session cookie is set
-// by the mock sign-in in lib/admin/auth.ts.
+// Sends visitors without a session cookie to the admin login page. This is only
+// a fast first check: the (app) layout verifies the Firebase session cookie and
+// the (auth) layout sends signed-in admins on to /admin.
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const signedIn = request.cookies.has(SESSION_COOKIE)
@@ -14,13 +15,6 @@ export function proxy(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/admin/login'
     url.search = pathname === '/admin' ? '' : `?next=${encodeURIComponent(pathname)}`
-    return NextResponse.redirect(url)
-  }
-
-  if (signedIn && isPublic) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/admin'
-    url.search = ''
     return NextResponse.redirect(url)
   }
 

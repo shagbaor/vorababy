@@ -17,11 +17,11 @@ import {
   TextField,
   type FieldState,
 } from '@/components/admin/auth-fields'
-import { createAccount, DEMO_OTP, emailTaken, maskPhone, PASSWORD_RULES, passwordValid } from '@/lib/admin/auth'
+import { signUp, type SignUpResult } from '@/app/admin/actions'
+import { DEMO_OTP, EMAIL_PATTERN, maskPhone, PASSWORD_RULES, passwordValid } from '@/lib/admin/auth'
 
 type Step = 'details' | 'verify' | 'verified'
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RESEND_SECONDS = 45
 
 export default function AdminSignupPage() {
@@ -40,10 +40,7 @@ export default function AdminSignupPage() {
       <VerifyStep
         phone={form.phone}
         onBack={() => setStep('details')}
-        onVerified={() => {
-          createAccount({ fullName: form.fullName.trim(), email: form.email, phone: `+234 ${form.phone}`, password: form.password })
-          setStep('verified')
-        }}
+        onVerified={() => setStep('verified')}
       />
     )
   }
@@ -59,7 +56,7 @@ export default function AdminSignupPage() {
             <br />
             have been verified
           </p>
-          <p className="text-[11px] text-black/40">You will be redirected to the login page</p>
+          <p className="text-[11px] text-black/40">You can sign in once a Vorapicks admin approves your account</p>
           <Link href="/admin/login" className="mt-4 text-[14px] font-medium text-[#0f3d2e] hover:underline">
             Go to sign in now
           </Link>
@@ -68,26 +65,27 @@ export default function AdminSignupPage() {
     )
   }
 
-  return <DetailsStep form={form} setForm={setForm} onSubmit={() => setStep('verify')} />
+  return <DetailsStep form={form} setForm={setForm} onCreated={() => setStep('verify')} />
 }
 
 function DetailsStep({
   form,
   setForm,
-  onSubmit,
+  onCreated,
 }: {
   form: { fullName: string; email: string; phone: string; password: string; confirm: string }
   setForm: React.Dispatch<React.SetStateAction<typeof form>>
-  onSubmit: () => void
+  onCreated: () => void
 }) {
   const [touched, setTouched] = useState<Partial<Record<keyof typeof form, boolean>>>({})
+  const [serverError, setServerError] = useState<Extract<SignUpResult, { ok: false }> | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const phoneDigits = form.phone.replace(/\D/g, '')
   const emailFormatOk = EMAIL_PATTERN.test(form.email.trim())
-  const emailInUse = emailFormatOk && emailTaken(form.email)
   const checks = {
     fullName: form.fullName.trim().length >= 2,
-    email: emailFormatOk && !emailInUse,
+    email: emailFormatOk,
     phone: phoneDigits.length === 10,
     password: passwordValid(form.password),
     confirm: form.confirm !== '' && form.confirm === form.password,
@@ -95,6 +93,7 @@ function DetailsStep({
   const allValid = Object.values(checks).every(Boolean)
 
   function fieldState(field: keyof typeof form): FieldState {
+    if (serverError?.field === field) return 'error'
     if (!touched[field] || form[field] === '') return 'default'
     return checks[field] ? (field === 'password' || field === 'phone' ? 'success' : 'default') : 'error'
   }
@@ -102,6 +101,7 @@ function DetailsStep({
   function update(field: keyof typeof form) {
     return (value: string) => {
       setForm((prev) => ({ ...prev, [field]: value }))
+      if (serverError?.field === field) setServerError(null)
       setTouched((prev) => ({ ...prev, [field]: true }))
     }
   }
@@ -113,10 +113,20 @@ function DetailsStep({
       <form
         noValidate
         className="mt-[27px] flex flex-col gap-3"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault()
-          if (allValid) onSubmit()
-          else setTouched({ fullName: true, email: true, phone: true, password: true, confirm: true })
+          if (!allValid) {
+            setTouched({ fullName: true, email: true, phone: true, password: true, confirm: true })
+            return
+          }
+          if (submitting) return
+          setSubmitting(true)
+          const result = await signUp({ fullName: form.fullName, email: form.email, phone: form.phone, password: form.password }).catch(
+            () => ({ ok: false as const, field: 'email' as const, message: 'Something went wrong. Try again.' }),
+          )
+          setSubmitting(false)
+          if (result.ok) onCreated()
+          else setServerError(result)
         }}
       >
         <TextField
@@ -126,7 +136,11 @@ function DetailsStep({
           value={form.fullName}
           onChange={(event) => update('fullName')(event.target.value)}
           state={fieldState('fullName')}
-          hint={fieldState('fullName') === 'error' && <FieldHint tone="error">Enter your full name</FieldHint>}
+          hint={
+            fieldState('fullName') === 'error' && (
+              <FieldHint tone="error">{serverError?.field === 'fullName' ? serverError.message : 'Enter your full name'}</FieldHint>
+            )
+          }
         />
         <TextField
           label="Email Address"
@@ -138,7 +152,7 @@ function DetailsStep({
           state={fieldState('email')}
           hint={
             fieldState('email') === 'error' && (
-              <FieldHint tone="error">{emailInUse ? 'An account with this email already exists' : 'Enter a valid email address'}</FieldHint>
+              <FieldHint tone="error">{serverError?.field === 'email' ? serverError.message : 'Enter a valid email address'}</FieldHint>
             )
           }
         />
@@ -147,7 +161,11 @@ function DetailsStep({
           value={form.phone}
           onChange={update('phone')}
           state={fieldState('phone')}
-          hint={fieldState('phone') === 'error' && <FieldHint tone="error">Enter a valid phone number</FieldHint>}
+          hint={
+            fieldState('phone') === 'error' && (
+              <FieldHint tone="error">{serverError?.field === 'phone' ? serverError.message : 'Enter a valid phone number'}</FieldHint>
+            )
+          }
         />
         <PasswordField
           label="Password"
@@ -179,7 +197,7 @@ function DetailsStep({
         />
 
         <div className="mt-1 flex flex-col items-center gap-[13px]">
-          <PrimaryButton type="submit" disabled={!allValid}>
+          <PrimaryButton type="submit" disabled={!allValid || submitting || serverError !== null}>
             Create Account
           </PrimaryButton>
           <p className="text-center text-[14px] font-medium">

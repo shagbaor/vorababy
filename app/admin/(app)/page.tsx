@@ -19,34 +19,34 @@ import { adminSections } from '@/components/admin/admin-nav'
 import { useAdminStore } from '@/components/admin/admin-store'
 import { DisputeCard } from '@/components/admin/dispute-card'
 import { EmptyState } from '@/components/admin/ui'
-import { signOut } from '@/lib/admin/auth'
+import { signOut } from '@/app/admin/actions'
 import { formatNaira, formatNairaCompact } from '@/lib/admin/format'
-import { adminProfile, platformRevenue, platformStats, todaysOverview } from '@/lib/admin/mock-data'
 
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const { disputes } = useAdminStore()
+  const { disputes, profile, dashboard } = useAdminStore()
   const activeDisputes = disputes.filter((d) => d.status !== 'resolved')
   const resolvedDisputes = disputes.length - activeDisputes.length
 
   const stats = [
-    { label: 'Active Sellers', value: platformStats.activeSellers, icon: Store01Icon },
-    { label: 'Active Riders', value: platformStats.activeRiders, icon: Motorbike02Icon },
+    { label: 'Active Sellers', value: dashboard.activeSellers, icon: Store01Icon },
+    { label: 'Active Riders', value: dashboard.activeRiders, icon: Motorbike02Icon },
     { label: 'Resolved Disputes', value: resolvedDisputes, icon: Briefcase03Icon },
   ]
 
   const overview = [
-    { label: 'Orders Today', change: todaysOverview.ordersToday.change, icon: Invoice01Icon, display: String(todaysOverview.ordersToday.value) },
-    { label: 'Active Disputes', change: todaysOverview.activeDisputes.change, icon: CustomerService01Icon, display: String(activeDisputes.length) },
-    { label: 'Fees Held', change: todaysOverview.feesHeld.change, icon: Coins01Icon, display: formatNairaCompact(todaysOverview.feesHeld.value) },
-    { label: 'Total Users', change: todaysOverview.totalUsers.change, icon: UserIcon, display: todaysOverview.totalUsers.value.toLocaleString() },
+    { label: 'Orders Today', change: dashboard.ordersToday.change, icon: Invoice01Icon, display: String(dashboard.ordersToday.value) },
+    { label: 'Active Disputes', change: dashboard.activeDisputesChange, icon: CustomerService01Icon, display: String(activeDisputes.length) },
+    { label: 'Fees Held', change: dashboard.feesHeld.change, icon: Coins01Icon, display: formatNairaCompact(dashboard.feesHeld.value) },
+    { label: 'Total Users', change: dashboard.totalUsers.change, icon: UserIcon, display: dashboard.totalUsers.value.toLocaleString() },
   ]
 
   const quickActions = adminSections.filter((section) => section.actionIcon)
 
-  function handleSignOut() {
-    signOut()
+  async function handleSignOut() {
+    await signOut()
     router.replace('/admin/login')
+    router.refresh()
   }
 
   return (
@@ -58,11 +58,11 @@ export default function AdminDashboardPage() {
             aria-hidden
             className="flex size-[41px] items-center justify-center rounded-full bg-[#2e8b57] text-sm font-semibold text-white"
           >
-            {adminProfile.initials}
+            {profile.initials}
           </div>
           <div className="flex flex-col gap-1">
             <p className="text-[11px] text-[#989997]">Welcome back,</p>
-            <h1 className="text-base font-medium text-[#1e1e1e]">{adminProfile.name}</h1>
+            <h1 className="text-base font-medium text-[#1e1e1e]">{profile.name}</h1>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -89,7 +89,7 @@ export default function AdminDashboardPage() {
         {/* Revenue */}
         <section className="rounded-3xl bg-[#2e8b57] p-[21px]">
           <p className="text-xs font-medium leading-4 text-[#f3f4f6]">Total Platform Revenue</p>
-          <p className="mt-0.5 text-[32px] font-bold leading-9 text-white">{formatNaira(platformRevenue)}</p>
+          <p className="mt-0.5 text-[32px] font-bold leading-9 text-white">{formatNaira(dashboard.platformRevenue)}</p>
         </section>
 
         {/* Platform stats */}

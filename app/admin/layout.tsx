@@ -1,6 +1,5 @@
 import { Outfit } from 'next/font/google'
 import type { Metadata } from 'next'
-import { AdminStoreProvider } from '@/components/admin/admin-store'
 
 const outfit = Outfit({ subsets: ['latin'] })
 
@@ -16,7 +15,7 @@ export default function AdminLayout({
 }>) {
   return (
     <div className={`${outfit.className} min-h-dvh bg-white text-[#1e1e1e]`}>
-      <AdminStoreProvider>{children}</AdminStoreProvider>
+      {children}
     </div>
   )
 }

@@ -1,6 +1,5 @@
-// Placeholder data for the admin app until it is wired to a database.
-// The admin store seeds itself from these exports, so swapping them for real
-// queries (or replacing the store with API calls) leaves the pages unchanged.
+// Types for the admin app's records, plus the development data that
+// scripts/seed.ts writes to Firestore. The app itself reads from Firestore.
 
 export type OrderStatus = 'held' | 'released' | 'refunded' | 'disputed'
 export type OrderProgress = 'New' | 'In Progress' | 'In Delivery' | 'Delivered'
@@ -69,21 +68,13 @@ export type Conversation = {
   messages: ChatMessage[]
 }
 
-export const adminProfile = {
-  name: 'Vorapicks HQ',
-  initials: 'VH',
-}
-
-export const platformRevenue = 12_840_000
-
-export const platformStats = {
+// Development seed for Firestore's meta/dashboard document (see DashboardMetrics in data.ts).
+export const seedDashboard = {
+  platformRevenue: 12_840_000,
   activeSellers: 58,
   activeRiders: 34,
-}
-
-export const todaysOverview = {
   ordersToday: { value: 87, change: 12 },
-  activeDisputes: { change: 12 },
+  activeDisputesChange: 12,
   feesHeld: { value: 5_100_000, change: 12 },
   totalUsers: { value: 892, change: 12 },
 }
