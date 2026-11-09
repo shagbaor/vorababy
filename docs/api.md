@@ -1,5 +1,7 @@
 # Vorapicks API (for the Flutter app)
 
+> The full integration guide, covering every screen in the buyer, seller and rider designs, is **[mobile-api.md](./mobile-api.md)**. This page keeps the details of the endpoints that are already live.
+
 Base URL: `https://<host>/api/v1`. All requests and responses are JSON.
 
 ## Response format
