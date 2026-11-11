@@ -92,16 +92,43 @@ export const DELETE = handle(async (request) => {
   if ((profile.walletBalanceKobo ?? 0) > 0) {
     throw new ApiError('conflict', 'Withdraw or spend your wallet balance before deleting your account')
   }
-  const active = await db().collection('orders').where('buyerId', '==', user.uid).where('escrowStatus', '==', 'held').limit(1).get()
-  if (!active.empty) throw new ApiError('conflict', 'You have orders in progress. Delete your account after they are completed.')
+  // Nothing may be left half-done: orders they buy, sell or deliver, money on
+  // its way to their bank, or a split they organise.
+  const held = (field: string) => db().collection('orders').where(field, '==', user.uid).where('escrowStatus', '==', 'held').limit(1).get()
+  const [asBuyer, asSeller, asRider, withdrawals, splits] = await Promise.all([
+    held('buyerId'),
+    held('storeId'),
+    held('riderId'),
+    db().collection('withdrawals').where('uid', '==', user.uid).get(),
+    db().collection('splits').where('participantIds', 'array-contains', user.uid).where('status', '==', 'collecting').get(),
+  ])
+  if (!asBuyer.empty || !asSeller.empty || !asRider.empty) {
+    throw new ApiError('conflict', 'You have orders in progress. Delete your account after they are completed.')
+  }
+  if (withdrawals.docs.some((w) => !['success', 'paid', 'failed', 'reversed'].includes(w.get('status')))) {
+    throw new ApiError('conflict', 'A withdrawal is still on its way to your bank. Try again once it arrives.')
+  }
+  if (!splits.empty) throw new ApiError('conflict', 'Finish, leave or cancel your open split-the-bill first.')
 
-  for (const sub of ['addresses', 'devices', 'cards', 'wishlist', 'notifications']) {
+  for (const sub of ['addresses', 'devices', 'cards', 'wishlist', 'notifications', 'inbox']) {
     const docs = await ref.collection(sub).listDocuments()
     await Promise.all(docs.map((d) => d.delete()))
   }
+  // Identity-check fingerprints, open shopping requests and the support thread go too.
+  const [kycIndex, requests] = await Promise.all([
+    db().collection('kycIndex').where('uid', '==', user.uid).get(),
+    db().collection('shoppingRequests').where('buyerId', '==', user.uid).get(),
+  ])
+  await Promise.all([
+    ...kycIndex.docs.map((d) => d.ref.delete()),
+    ...requests.docs.filter((d) => ['open', 'suggestions_received'].includes(d.get('status'))).map((d) => d.ref.update({ status: 'closed', closedAt: FieldValue.serverTimestamp() })),
+    db().collection('conversations').doc(`support-${user.uid}`).update({ closed: true, deletedUser: true }).catch(() => null),
+  ])
+  // Wallet history (walletTransactions) and past orders are kept: they are
+  // financial records Vorapicks must hold.
   await Promise.all([
     ref.delete(),
-    db().collection('stores').doc(user.uid).update({ verificationStatus: 'deleted', isOpen: false }).catch(() => null),
+    db().collection('stores').doc(user.uid).update({ verificationStatus: 'deleted', isOpen: false, ownerActive: false }).catch(() => null),
     db().collection('riders').doc(user.uid).delete().catch(() => null),
     db().collection('carts').doc(user.uid).delete().catch(() => null),
   ])

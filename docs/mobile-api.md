@@ -123,7 +123,7 @@ All sign-in happens in the app with Firebase Authentication; the API never sees 
 | `POST /me` | ✅ (shape below from Stage 1) | Register: `{ "role": "buyer"\|"seller"\|"rider", "name", "email"?, "phone"? }` → `201`. `409 conflict` if already registered. The role cannot be changed later. |
 | `PATCH /me` | ✅ | `{ "name"?, "phone"?, "email"?, "avatarFileId"? }` (Edit Profile) |
 | `PATCH /me/preferences` | ✅ | `{ "shoppingMode": "restaurants"\|"farm"\|"all" }` (What are you shopping for today? / Skip) and notification settings: `{ "notifications": { "orderUpdates": true, "promotions": false, "news": false, "sms": true } }` |
-| `DELETE /me` | ✅ | Delete account (store requirement) |
+| `DELETE /me` | ✅ | Delete account (Apple and Google require it). Refused with `409` and a message to show while there is money in the wallet, an order in progress (bought, sold or being delivered), a withdrawal on its way, or an open split. Then the login, profile, saved cards, addresses and store or rider record are removed; past orders and wallet history are kept as financial records. Sign the user out afterwards. |
 
 `GET /me` response (from Stage 1):
 
