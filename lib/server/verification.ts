@@ -23,6 +23,10 @@ export const storeSchema = z.object({
   tagline: optionalText(100),
   description: optionalText(500),
   phone: optionalText(20),
+  // From the app's business details form; the instant CAC check fills
+  // rcNumber too.
+  rcNumber: optionalText(20),
+  taxId: optionalText(30),
   address: addressFields,
   location: latLng,
 })

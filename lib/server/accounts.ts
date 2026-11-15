@@ -28,6 +28,8 @@ export function presentStore(id: string, s: FirebaseFirestore.DocumentData) {
     description: s.description ?? null,
     businessType: s.businessType ?? null,
     ownerLegalName: s.ownerLegalName ?? null,
+    rcNumber: s.rcNumber ?? null,
+    taxId: s.taxId ?? null,
     phone: s.phone ?? null,
     address: s.address,
     location: s.location,
