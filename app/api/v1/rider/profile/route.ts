@@ -16,7 +16,10 @@ export const PUT = handle(async (request) => {
   const existing = await ref.get()
   await ref.set(
     {
-      ...body,
+      legalName: body.legalName,
+      address: body.address,
+      // Firestore refuses undefined values; date of birth is optional.
+      ...(body.dateOfBirth && { dateOfBirth: body.dateOfBirth }),
       userId: caller.user.uid,
       verificationStatus: verificationStatus(caller.profile),
       ...(!existing.exists && { isOnline: false, rating: null, ratingCount: 0, tripCount: 0, createdAt: FieldValue.serverTimestamp() }),

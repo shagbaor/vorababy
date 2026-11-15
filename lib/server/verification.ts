@@ -36,13 +36,16 @@ export const storeUpdateSchema = storeSchema.partial().extend({
 
 export const riderProfileSchema = z.object({
   legalName: text(100, 2),
+  // Optional: the app's rider registration doesn't ask for it yet. When given,
+  // identity checks compare it with the NIN record.
   dateOfBirth: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD')
     .refine((value) => {
       const age = (Date.now() - new Date(value).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
       return age >= 18 && age < 100
-    }, 'Riders must be at least 18'),
+    }, 'Riders must be at least 18')
+    .optional(),
   address: addressFields,
 })
 
