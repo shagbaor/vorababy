@@ -1,3 +1,5 @@
+heheh welcome to vorapicks my baby
+
 # Vorapicks
 
 Marketing site and admin web app for Vorapicks, built with Next.js 16 and Tailwind CSS v4. The backend runs on Firebase (Auth and Firestore) through the Firebase Admin SDK on the Next.js server. The buyer, seller and rider apps are in Flutter and use the REST API described in [docs/api.md](./docs/api.md).
