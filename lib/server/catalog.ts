@@ -31,6 +31,9 @@ export async function visibleProducts(stores: Map<string, StoreDoc>, filter?: { 
 
 export function storeEta(store: StoreDoc, from?: LatLng) {
   const km = from && store.location ? distanceKm(from, store.location) : null
+  // The seller's own estimate (set with their opening hours) wins.
+  const own = store.deliveryMinutes as { min: number; max: number } | null | undefined
+  if (own) return { distanceKm: km, etaMinutes: { min: own.min, max: own.max } }
   const prep = store.type === 'restaurant' ? (store.prepMinutes ?? 20) : 30
   const travel = km === null ? 25 : travelMinutes(km)
   return { distanceKm: km, etaMinutes: { min: prep + travel - 5, max: prep + travel + 5 } }

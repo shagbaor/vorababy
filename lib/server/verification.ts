@@ -37,6 +37,12 @@ export const storeUpdateSchema = storeSchema.partial().extend({
   coverFileId: z.string().max(100).optional(),
   isOpen: z.boolean().optional(),
   openingHours: openingHoursSchema.nullable().optional(),
+  // The seller's own delivery estimate shown to buyers, e.g. 22–32 minutes.
+  deliveryMinutes: z
+    .object({ min: z.number().int().min(5).max(24 * 60), max: z.number().int().min(5).max(24 * 60) })
+    .refine((d) => d.max >= d.min, { message: 'The longest time must be at least the shortest' })
+    .nullable()
+    .optional(),
 })
 
 export const riderProfileSchema = z.object({

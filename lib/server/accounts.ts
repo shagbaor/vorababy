@@ -38,6 +38,7 @@ export function presentStore(id: string, s: FirebaseFirestore.DocumentData) {
     isOpen: s.isOpen !== false,
     isOpenNow: isOpenNow(s.isOpen, s.openingHours),
     openingHours: s.openingHours ?? null,
+    deliveryMinutes: s.deliveryMinutes ?? null,
     rating: s.rating ?? null,
     ratingCount: s.ratingCount ?? 0,
     verificationStatus: s.verificationStatus ?? 'incomplete',

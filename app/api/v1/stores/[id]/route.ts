@@ -3,6 +3,9 @@ import { parseQuery } from '@/lib/api/guard'
 import { ApiError, handle, methodNotAllowed, ok } from '@/lib/api/response'
 import { db } from '@/lib/firebase/admin'
 import { fromQuery, locationQuery, presentStoreCard, visibleStores } from '@/lib/server/catalog'
+import { lagosNow } from '@/lib/server/geo'
+import { topReview } from '@/lib/server/reviews'
+import { deliveryFeeKobo, getSettings } from '@/lib/server/settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,10 +15,25 @@ export const GET = handle<{ params: Promise<{ id: string }> }>(async (request, {
   const query = parseQuery(request, z.object(locationQuery))
   const store = (await visibleStores()).get(id)
   if (!store) throw new ApiError('not_found', 'Store not found')
-  const sections = await db().collection('stores').doc(id).collection('menuSections').orderBy('position').get()
+  const from = fromQuery(query)
+  const [sections, settings, review] = await Promise.all([
+    db().collection('stores').doc(id).collection('menuSections').orderBy('position').get(),
+    getSettings(),
+    topReview(id),
+  ])
+  const card = presentStoreCard(store, from)
+  const today = store.openingHours?.[lagosNow().weekday] ?? null
   return ok(
     {
-      ...presentStoreCard(store, fromQuery(query)),
+      ...card,
+      // Only approved stores are listed.
+      verified: true,
+      deliveryFeeKobo: deliveryFeeKobo(settings, card.distanceKm ?? 0),
+      deliveryFeeIsEstimate: card.distanceKm === null,
+      prepMinutes: store.type === 'restaurant' ? (store.prepMinutes ?? 20) : null,
+      deliveryMinutes: store.deliveryMinutes ?? null,
+      todayHours: today,
+      topReview: review,
       description: store.description ?? null,
       address: store.address,
       location: store.location,

@@ -14,6 +14,8 @@ const schema = z.object({
   riderRating: rating.optional(),
   comment: optionalText(500),
   productRatings: z.array(z.object({ productId: z.string().max(100), rating })).max(50).optional(),
+  // Show "Anonymous" instead of the buyer's first name on the review.
+  anonymous: z.boolean().default(false),
 })
 
 export const POST = handle<{ params: Promise<{ id: string }> }>(async (request, { params }) => {
@@ -47,12 +49,22 @@ export const POST = handle<{ params: Promise<{ id: string }> }>(async (request, 
       tx.set(p.ref.collection('reviews').doc(order.id), {
         rating: productRatings[i].rating,
         comment: body.comment ?? null,
-        buyerName: String(profile.name).split(' ')[0],
+        buyerName: body.anonymous ? null : String(profile.name).split(' ')[0],
+        anonymous: body.anonymous,
         buyerId: user.uid,
         createdAt: FieldValue.serverTimestamp(),
       })
     })
-    tx.update(order.ref, { reviewedAt: FieldValue.serverTimestamp(), review: { storeRating: body.storeRating, riderRating: body.riderRating ?? null, comment: body.comment ?? null } })
+    // The store's public review (Reviews page and the store page's rating card).
+    tx.set(storeRef.collection('reviews').doc(order.id), {
+      rating: body.storeRating,
+      comment: body.comment ?? null,
+      buyerName: body.anonymous ? null : String(profile.name).split(' ')[0],
+      anonymous: body.anonymous,
+      buyerId: user.uid,
+      createdAt: FieldValue.serverTimestamp(),
+    })
+    tx.update(order.ref, { reviewedAt: FieldValue.serverTimestamp(), review: { storeRating: body.storeRating, riderRating: body.riderRating ?? null, comment: body.comment ?? null, anonymous: body.anonymous } })
   })
   return ok({ id: order.id }, 'Thanks for your feedback')
 })
