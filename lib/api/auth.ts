@@ -7,6 +7,8 @@ export type ApiUser = {
   email: string | null
   phone: string | null
   claims: Record<string, unknown>
+  // When the person last signed in (seconds since 1970), from the token.
+  authTime?: number
 }
 
 // The Flutter app signs in with firebase_auth and sends the user's ID token as
@@ -18,7 +20,7 @@ export async function requireUser(request: Request): Promise<ApiUser> {
 
   try {
     const token = await adminAuth().verifyIdToken(match[1], true)
-    return { uid: token.uid, email: token.email ?? null, phone: token.phone_number ?? null, claims: token }
+    return { uid: token.uid, email: token.email ?? null, phone: token.phone_number ?? null, claims: token, authTime: token.auth_time }
   } catch (error) {
     const code = (error as { code?: string }).code
     if (code === 'auth/id-token-expired') throw new ApiError('unauthenticated', 'Session expired. Refresh the token and retry.')
