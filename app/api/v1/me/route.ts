@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/api/auth'
 import { optionalText, parseBody, requireProfile, text } from '@/lib/api/guard'
 import { ApiError, handle, methodNotAllowed, ok } from '@/lib/api/response'
 import { presentMe } from '@/lib/server/accounts'
+import { notify } from '@/lib/server/notify'
 import { useFile } from '@/lib/server/storage'
 import { adminAuth, db } from '@/lib/firebase/admin'
 import { normalizePhone, USER_ROLES } from '@/lib/users'
@@ -63,6 +64,14 @@ export const POST = handle(async (request) => {
     })
   })
   await adminAuth().updateUser(user.uid, { displayName: body.name })
+  // Welcome note in Notifications (and a push once the phone registers).
+  const firstName = body.name.split(' ')[0]
+  const welcome = {
+    seller: ['Welcome to Vorapicks', `Hi ${firstName}, your seller account is ready. Add your business details and documents so we can approve your store.`],
+    rider: ['Welcome to Vorapicks', `Hi ${firstName}, your rider account is ready. Finish your profile and documents so we can approve you.`],
+    buyer: ['Welcome to Vorapicks', `Hi ${firstName}, fresh picks from local farms and restaurants are waiting.`],
+  }[body.role as 'seller' | 'rider' | 'buyer']
+  if (welcome) await notify(user.uid, 'verification', welcome[0], welcome[1])
   return ok(await presentMe(user), 'Profile created', 201)
 })
 

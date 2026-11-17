@@ -7,6 +7,7 @@ import { db } from '@/lib/firebase/admin'
 import { missingForReview, verificationStatus } from '@/lib/server/accounts'
 import { allVerified } from '@/lib/server/kyc'
 import { getSettings } from '@/lib/server/settings'
+import { notify } from '@/lib/server/notify'
 
 // Seller and rider onboarding: details, documents, then "submit for review".
 // Admins approve in the admin app (Users → Verify User).
@@ -97,5 +98,14 @@ export async function submitForReview(caller: Caller) {
   })
   batch.update(db().collection(caller.profile.role === 'seller' ? 'stores' : 'riders').doc(caller.user.uid), { verificationStatus: 'pending', updatedAt: now })
   await batch.commit()
+  const what = caller.profile.role === 'seller' ? 'store' : 'rider account'
+  await notify(
+    caller.user.uid,
+    'verification',
+    'Registration received',
+    auto
+      ? `Your ${what} details passed our checks. You'll be approved in about ${autoApproveMinutes} minutes.`
+      : `We're reviewing your ${what}. You'll be notified within 24–48 hours.`,
+  )
   return { auto, autoApproveMinutes }
 }
