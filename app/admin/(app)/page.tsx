@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
+  Image01Icon,
   Briefcase03Icon,
   Coins01Icon,
   CustomerService01Icon,
@@ -100,6 +101,16 @@ export default function AdminDashboardPage() {
               </span>
             )}
           </Link>
+          {profile.superAdmin && (
+            <Link
+              href="/admin/banner"
+              aria-label="Home banner"
+              title="Home banner"
+              className="rounded-full p-1.5 text-[#1e1e1e] transition-colors hover:bg-gray-100"
+            >
+              <HugeiconsIcon icon={Image01Icon} size={24} strokeWidth={1.5} />
+            </Link>
+          )}
           <button
             type="button"
             aria-label="Notifications"

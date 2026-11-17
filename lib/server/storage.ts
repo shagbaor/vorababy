@@ -75,3 +75,16 @@ export async function privateFileUrl(fileId: string) {
   const [url] = await bucket().file(snapshot.get('path')).getSignedUrl({ version: 'v4', action: 'read', expires: Date.now() + 30 * 60 * 1000 })
   return url
 }
+
+// Admin uploads (e.g. the home banner picture): stored publicly with a
+// download token, like product photos. Returns the image URL.
+export async function uploadPublicImage(folder: string, bytes: Buffer, contentType: string) {
+  if (!IMAGE_TYPES.includes(contentType)) throw new ApiError('validation_failed', 'Use a JPG, PNG or WebP image')
+  if (bytes.byteLength > 4_000_000) throw new ApiError('validation_failed', 'The image must be 4 MB or smaller')
+  const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg'
+  const file = bucket().file(`${folder}/${randomUUID()}.${ext}`)
+  const token = randomUUID()
+  await file.save(bytes, { contentType, metadata: { metadata: { firebaseStorageDownloadTokens: token } } })
+  return `https://firebasestorage.googleapis.com/v0/b/${file.bucket.name}/o/${encodeURIComponent(file.name)}?alt=media&token=${token}`
+}
+
