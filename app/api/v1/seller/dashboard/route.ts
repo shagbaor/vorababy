@@ -38,6 +38,9 @@ export const GET = handle(async (request) => {
       todayOrders,
       todayOrdersChangePct: yesterdayOrders ? Math.round(((todayOrders - yesterdayOrders) / yesterdayOrders) * 100) : null,
       pendingOrders: orders.docs.filter((d) => d.get('status') === 'placed').length,
+      // Today's Overview tiles.
+      todayCompleted: orders.docs.filter((d) => at(d) >= startOfDay && ['delivered', 'completed'].includes(d.get('status'))).length,
+      todayCancelled: orders.docs.filter((d) => at(d) >= startOfDay && d.get('status') === 'cancelled').length,
       activeProducts: published.length,
       lowStockItems: published.filter((p) => (p.get('stock') ?? 0) <= (p.get('lowStockThreshold') ?? 3)).length,
       weeklySales: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map((day, i) => ({

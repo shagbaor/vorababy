@@ -53,7 +53,10 @@ export async function checkPin(caller: Caller, pin: string | undefined) {
 
 /** Creates the PIN, or changes it (the current PIN, or a fresh sign-in for "Forgot PIN", is required). */
 export async function setPin(caller: Caller, pin: string, currentPin: string | undefined, recentSignIn: boolean) {
-  if (caller.profile.withdrawalPin && !recentSignIn) await checkPin(caller, currentPin)
+  if (caller.profile.withdrawalPin && !recentSignIn) {
+    if (!currentPin) throw new ApiError('forbidden', 'To reset your PIN, sign out and sign back in, then set a new PIN within 5 minutes.')
+    await checkPin(caller, currentPin)
+  }
   const salt = randomBytes(16)
   await caller.ref.update({
     withdrawalPin: { hash: await hashPin(pin, salt), salt: salt.toString('base64'), setAt: FieldValue.serverTimestamp(), failures: 0, lockedUntil: null },
