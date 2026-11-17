@@ -153,9 +153,11 @@ export async function loadSellerRequest(uid: string, id: string) {
   return { ref, r, offerRef: offer.ref, offer: offer.exists ? (offer.data() as OfferDoc) : null }
 }
 
+// Suggestions can be added or removed until the buyer accepts an offer, also
+// after sending (the app sends each suggestion as it is added).
 function requireEditable(r: RequestDoc, offer: OfferDoc | null) {
   if (r.status === 'accepted' || r.status === 'closed' || isPast(r)) throw new ApiError('conflict', 'This request is closed')
-  if (offer && offer.status !== 'draft') throw new ApiError('conflict', 'You already sent your suggestions')
+  if (offer && offer.status !== 'draft' && offer.status !== 'sent') throw new ApiError('conflict', 'The buyer has already decided on this request')
 }
 
 export async function addSuggestion(caller: Caller, id: string, input: { name: string; priceKobo: number; unit: string; note?: string; productId?: string }) {
@@ -205,8 +207,10 @@ export async function sendOffer(uid: string, id: string) {
   await db().runTransaction(async (t) => {
     const current = (await t.get(ref)).data() as RequestDoc
     if (current.status === 'accepted' || current.status === 'closed') throw new ApiError('conflict', 'This request is closed')
+    // Re-sending (more suggestions) does not count as another offer.
+    const firstSend = offer.status === 'draft'
     t.update(offerRef, { status: 'sent', sentAt: FieldValue.serverTimestamp() })
-    t.update(ref, { status: 'suggestions_received', offersSent: FieldValue.increment(1) })
+    if (firstSend) t.update(ref, { status: 'suggestions_received', offersSent: FieldValue.increment(1) })
   })
   await notify(r.buyerId, 'shopping_suggestions', 'New suggestions', `${offer.storeName} sent ${offer.suggestions.length} suggestion${offer.suggestions.length === 1 ? '' : 's'} for your shopping request.`, { requestId: id })
 }
