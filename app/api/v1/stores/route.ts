@@ -5,7 +5,7 @@ import { fromQuery, locationQuery, presentStoreCard, visibleProducts, visibleSto
 
 export const dynamic = 'force-dynamic'
 
-// Public: "See all" restaurants or farms, nearest and open first.
+// Public: "See all" restaurants or farms, nearest first (pass lat/lng).
 const schema = pageQuery.extend({ type: z.enum(['farm', 'restaurant', 'vendor']).optional(), q: z.string().max(80).optional(), ...locationQuery })
 
 export const GET = handle(async (request) => {
@@ -21,7 +21,8 @@ export const GET = handle(async (request) => {
       const top = products.filter((p) => p.storeId === s.id).sort((a, b) => (b.soldCount ?? 0) - (a.soldCount ?? 0))
       return presentStoreCard(s, from, top.slice(0, 3).map((p) => p.name))
     })
-    .sort((a, b) => Number(b.isOpenNow) - Number(a.isOpenNow) || (a.distanceKm ?? 999) - (b.distanceKm ?? 999) || (b.rating ?? 0) - (a.rating ?? 0))
+    // Nearest first when the buyer's location is known; then open ones, then best rated.
+    .sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999) || Number(b.isOpenNow) - Number(a.isOpenNow) || (b.rating ?? 0) - (a.rating ?? 0))
 
   return ok({ total: cards.length, ...paginate(cards, query) }, 'Stores loaded')
 })
