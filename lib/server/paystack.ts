@@ -85,6 +85,8 @@ export type Transaction = {
   customer?: { email: string }
 }
 
+export const PAYSTACK_CALLBACK_URL = 'https://vorapicks.com/paystack/done'
+
 export const paystack = {
   initialize: (input: { email: string; amountKobo: number; reference: string; metadata: Record<string, unknown>; channels?: string[] }) =>
     call<{ authorization_url: string; access_code: string; reference: string }>('POST', '/transaction/initialize', {
@@ -94,6 +96,8 @@ export const paystack = {
       currency: 'NGN',
       metadata: input.metadata,
       channels: input.channels,
+      // The app's in-app payment screen closes when Paystack sends the buyer here.
+      callback_url: PAYSTACK_CALLBACK_URL,
     }),
 
   verify: (reference: string) => call<Transaction>('GET', `/transaction/verify/${encodeURIComponent(reference)}`),

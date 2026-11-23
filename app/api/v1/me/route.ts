@@ -81,6 +81,8 @@ const updateSchema = z.object({
   phone: phone.optional(),
   location: optionalText(120),
   avatarFileId: z.string().max(100).optional(),
+  // A built-in avatar ("preset:chef") or "default" to clear the photo.
+  avatarPreset: z.enum(['default', 'preset:chef', 'preset:farmer', 'preset:foodie', 'preset:star', 'preset:rider', 'preset:user']).optional(),
 })
 
 export const PATCH = handle(async (request) => {
@@ -89,6 +91,7 @@ export const PATCH = handle(async (request) => {
   const update: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp(), updatedBy: user.uid }
   for (const key of ['name', 'email', 'phone', 'location'] as const) if (body[key] !== undefined) update[key] = body[key]
   if (body.avatarFileId) update.avatarUrl = (await useFile(user.uid, body.avatarFileId, ['avatar'])).url
+  else if (body.avatarPreset) update.avatarUrl = body.avatarPreset === 'default' ? null : body.avatarPreset
   await ref.update(update)
   if (body.name) await adminAuth().updateUser(user.uid, { displayName: body.name })
   return ok(await presentMe(user), 'Profile updated')

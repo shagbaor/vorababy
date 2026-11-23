@@ -4,6 +4,7 @@ import { ApiError } from '@/lib/api/response'
 import { toIso } from '@/lib/api/guard'
 import { db } from '@/lib/firebase/admin'
 import type { OrderDraft, DeliverySlot } from '@/lib/server/cart'
+import { HANDOFF_MAX_TRIES, handoffCode } from '@/lib/server/handoff'
 import { notify } from '@/lib/server/notify'
 import { loadWallets, type WalletChange } from '@/lib/server/wallet'
 
@@ -266,7 +267,9 @@ export function presentOrder(id: string, o: FirebaseFirestore.DocumentData, view
       address: o.address,
       rider: riderInfo,
       canCancel: o.status === 'placed' && o.escrowStatus === 'held',
-      canConfirm: o.status === 'delivered' && o.escrowStatus === 'held',
+      canConfirm: ['out_for_delivery', 'delivered'].includes(o.status) && o.escrowStatus === 'held' && !o.handoffLocked,
+      handoffAttemptsLeft: Math.max(0, HANDOFF_MAX_TRIES - ((o.handoffFailedAttempts as number | undefined) ?? 0)),
+      handoffLocked: Boolean(o.handoffLocked),
       canReview: ['delivered', 'completed'].includes(o.status) && !o.reviewedAt,
       canReport: ['delivered', 'completed', 'out_for_delivery'].includes(o.status) && !o.disputeId && o.escrowStatus === 'held',
       disputeId: o.disputeId ?? null,
@@ -282,6 +285,11 @@ export function presentOrder(id: string, o: FirebaseFirestore.DocumentData, view
       commissionKobo: o.commissionKobo,
       payoutKobo: o.sellerPayoutKobo,
       rider: riderInfo,
+      handoffCode: o.riderId ? handoffCode(o.orderNumber ?? id) : null,
+      readyAt: toIso(o.readyAt),
+      riderAssignedAt: toIso(o.assignedAt),
+      riderArrivedAt: toIso(o.riderArrivedAt),
+      pickedUpAt: toIso(o.pickedUpAt),
     }
   }
   return {
@@ -291,6 +299,7 @@ export function presentOrder(id: string, o: FirebaseFirestore.DocumentData, view
     bonusKobo: o.riderBonusKobo ?? 0,
     distanceKm: o.distanceKm,
     paymentProtected: o.escrowStatus === 'held',
+    handoffCode: handoffCode(o.orderNumber ?? id),
   }
 }
 

@@ -8,7 +8,7 @@ import { applySplitPayment, closeSplit, declineShare, presentSplit, type SplitDo
 
 export const dynamic = 'force-dynamic'
 
-// accept | decline (invitees) · pay (anyone with a share owing) · cancel (organiser)
+// accept | decline (invitees) · pay (anyone with a share owing) · cancel | remind (organiser)
 export const POST = handle<{ params: Promise<{ id: string; action: string }> }>(async (request, { params }) => {
   const { user, profile } = await requireProfile(request, { roles: ['buyer'] })
   const { id, action } = await params
@@ -36,6 +36,15 @@ export const POST = handle<{ params: Promise<{ id: string; action: string }> }>(
     if (split.organiserId !== user.uid) throw new ApiError('forbidden', 'Only the organiser can cancel the split')
     await closeSplit(id, 'cancelled', `${profile.name} cancelled the split.`)
     return ok(await fresh(), 'Split cancelled. Paid shares were refunded to wallets.')
+  }
+
+  if (action === 'remind') {
+    if (split.organiserId !== user.uid) throw new ApiError('forbidden', 'Only the organiser can send reminders')
+    if (split.status !== 'collecting') throw new ApiError('conflict', `This split is ${split.status}`)
+    const body = parse(z.object({ uid: z.string().max(128).optional() }), await readJson(request).catch(() => ({})))
+    const due = split.participants.filter((p) => !p.isOrganiser && p.status !== 'declined' && p.amountKobo - p.paidKobo > 0 && (!body.uid || p.uid === body.uid))
+    await Promise.all(due.map((p) => notify(p.uid, 'split_update', 'Split reminder', `${profile.name} is waiting for your share of the split.`, { splitId: id })))
+    return ok(await fresh(), due.length === 1 ? 'Reminder sent' : `${due.length} reminders sent`)
   }
 
   if (action === 'pay') {

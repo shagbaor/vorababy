@@ -62,6 +62,9 @@ export const POST = handle<{ params: Promise<{ id: string }> }>(async (request, 
       buyerName: body.anonymous ? null : String(profile.name).split(' ')[0],
       anonymous: body.anonymous,
       buyerId: user.uid,
+      // What they ordered, shown on the review ("Ordered: Jollof rice, ...").
+      items: ((o.items ?? []) as { name?: string }[]).map((i) => i.name).filter(Boolean).slice(0, 5),
+      helpfulBy: [],
       createdAt: FieldValue.serverTimestamp(),
     })
     tx.update(order.ref, { reviewedAt: FieldValue.serverTimestamp(), review: { storeRating: body.storeRating, riderRating: body.riderRating ?? null, comment: body.comment ?? null, anonymous: body.anonymous } })

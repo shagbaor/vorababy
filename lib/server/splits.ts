@@ -80,7 +80,7 @@ export function presentSplit(id: string, s: SplitDoc, viewer: string) {
     joinedCount: s.participants.filter((p) => p.status !== 'pending' && p.status !== 'declined').length,
     participantCount: s.participants.length,
     myShare: me ? { amountKobo: me.amountKobo, paidKobo: me.paidKobo, owedKobo: owed(me), status: me.status } : null,
-    participants: s.participants.map((p) => ({ uid: p.uid, name: p.name, isOrganiser: p.isOrganiser, amountKobo: p.amountKobo, paidKobo: p.paidKobo, status: p.status })),
+    participants: s.participants.map((p) => ({ uid: p.uid, name: p.name, isMe: p.uid === viewer, isOrganiser: p.isOrganiser, amountKobo: p.amountKobo, paidKobo: p.paidKobo, status: p.status })),
     stores: s.checkout.drafts.map((d) => ({ id: d.storeId, name: d.storeName, itemCount: d.itemCount })),
     orderIds: s.orderIds,
     expiresAt: toIso(s.expiresAt),

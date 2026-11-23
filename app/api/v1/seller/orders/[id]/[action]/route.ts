@@ -4,6 +4,7 @@ import { ApiError, handle, methodNotAllowed, ok, readJson } from '@/lib/api/resp
 import { db } from '@/lib/firebase/admin'
 import { orderFor } from '@/lib/server/order-access'
 import { presentOrder, refundOrder, requireStatus, transition } from '@/lib/server/orders'
+import { notify } from '@/lib/server/notify'
 import { offerJob } from '@/lib/server/riders'
 
 export const dynamic = 'force-dynamic'
@@ -13,6 +14,7 @@ export const dynamic = 'force-dynamic'
 //   reject     placed → cancelled (buyer refunded)      body { reason }
 //   preparing  confirmed → preparing
 //   ready      confirmed|preparing → ready_for_pickup  (nearby riders are offered the job)
+//   handoff    ready_for_pickup → out_for_delivery     (seller checked the code with the rider)
 export const POST = handle<{ params: Promise<{ id: string; action: string }> }>(async (request, { params }) => {
   const { user } = await requireProfile(request, { roles: ['seller'], approved: true })
   const { id, action } = await params
@@ -29,6 +31,10 @@ export const POST = handle<{ params: Promise<{ id: string; action: string }> }>(
   } else if (action === 'ready') {
     await transition(id, (o) => requireStatus(o, ['confirmed', 'preparing']), 'ready_for_pickup', { readyAt: new Date() })
     await offerJob(id)
+  } else if (action === 'handoff') {
+    if (!order.get('riderId')) throw new ApiError('conflict', 'Wait for a rider to accept this order first')
+    await transition(id, (o) => requireStatus(o, ['ready_for_pickup']), 'out_for_delivery', { pickedUpAt: new Date(), handedOffBy: 'seller' })
+    await notify(order.get('riderId'), 'order_status', 'Order handed over', `${id} is yours. Head to the buyer.`, { orderId: id })
   } else {
     throw new ApiError('not_found', 'No such endpoint')
   }
@@ -38,6 +44,7 @@ export const POST = handle<{ params: Promise<{ id: string; action: string }> }>(
     reject: 'Order rejected. The buyer has been refunded.',
     preparing: 'Marked as being prepared',
     ready: 'Ready for pickup. Nearby riders have been notified.',
+    handoff: 'Handed over. The order is out for delivery.',
   }[action]!)
 })
 
