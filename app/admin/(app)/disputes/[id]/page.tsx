@@ -24,7 +24,7 @@ export default function DisputeDetailPage() {
 
   if (!dispute) {
     return (
-      <main className="px-[22px]">
+      <main className="px-[22px] lg:mx-auto lg:max-w-[760px] lg:pt-6">
         <ScreenHeader title="Dispute" backHref="/admin/disputes" />
         <div className="mt-6">
           <EmptyState>We couldn&apos;t find dispute {id}.</EmptyState>
@@ -41,7 +41,7 @@ export default function DisputeDetailPage() {
   const resolved = dispute.status === 'resolved'
 
   return (
-    <main className="px-6">
+    <main className="px-6 lg:mx-auto lg:max-w-[760px] lg:pt-6">
       {toast}
       <ScreenHeader title={dispute.id} backHref="/admin/disputes" />
 
@@ -84,7 +84,7 @@ export default function DisputeDetailPage() {
         </section>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] border-t border-[#f3f4f6] bg-white px-4 pt-[21px] pb-[max(12px,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] lg:left-[248px] lg:max-w-none lg:px-10 border-t border-[#f3f4f6] bg-white px-4 pt-[21px] pb-[max(12px,env(safe-area-inset-bottom))]">
         {resolved ? (
           <p className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#e5f5ec] text-sm font-semibold text-[#2e8b57]">
             <HugeiconsIcon icon={CheckmarkCircle02Icon} size={18} strokeWidth={2} />

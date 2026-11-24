@@ -17,7 +17,7 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Admin"
-      className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] border-t border-[#f3f4f6] bg-white px-2 pt-[9px] pb-[max(8px,env(safe-area-inset-bottom))]"
+      className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] border-t lg:hidden border-[#f3f4f6] bg-white px-2 pt-[9px] pb-[max(8px,env(safe-area-inset-bottom))]"
     >
       <ul className="flex items-center justify-between px-[7px]">
         {adminSections.map(({ label, href, navIcon }) => {

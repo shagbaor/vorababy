@@ -181,10 +181,10 @@ export function BottomSheet({
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-center" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 z-50 flex justify-center lg:items-center" role="dialog" aria-modal="true" aria-label={title}>
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 bg-black/50" />
-      <div className="absolute bottom-0 w-full max-w-[390px] rounded-t-3xl bg-white px-[23px] pt-5 pb-[max(32px,env(safe-area-inset-bottom))] animate-in slide-in-from-bottom duration-200">
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#e5e7eb]" />
+      <div className="absolute bottom-0 w-full max-w-[390px] rounded-t-3xl bg-white lg:relative lg:bottom-auto lg:max-w-[440px] lg:rounded-3xl lg:pb-8 px-[23px] pt-5 pb-[max(32px,env(safe-area-inset-bottom))] animate-in slide-in-from-bottom duration-200">
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[#e5e7eb] lg:hidden" />
         <div className="mt-4">
           <h2 className="text-base font-semibold leading-6 tracking-[-0.24px] text-[#202020]">{title}</h2>
           {subtitle && <p className="text-xs leading-4 tracking-[0.08px] text-[#a3a4a6]">{subtitle}</p>}

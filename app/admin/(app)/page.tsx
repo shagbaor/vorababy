@@ -72,9 +72,9 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <main className="px-[22px] pt-8">
+    <main className="px-[22px] pt-8 lg:px-4">
       {/* Greeting */}
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between lg:rounded-3xl lg:border lg:border-[#f3f4f6] lg:bg-white lg:px-6 lg:py-4">
         <div className="flex items-center gap-2">
           <div
             aria-hidden
@@ -92,7 +92,7 @@ export default function AdminDashboardPage() {
             href="/admin/team"
             aria-label={adminRequests > 0 ? `Admin team, ${adminRequests} waiting for approval` : 'Admin team'}
             title="Admin team"
-            className="relative rounded-full p-1.5 text-[#1e1e1e] transition-colors hover:bg-gray-100"
+            className="relative rounded-full p-1.5 lg:hidden text-[#1e1e1e] transition-colors hover:bg-gray-100"
           >
             <HugeiconsIcon icon={UserGroupIcon} size={24} strokeWidth={1.5} />
             {adminRequests > 0 && (
@@ -106,7 +106,7 @@ export default function AdminDashboardPage() {
               href="/admin/banner"
               aria-label="Home banner"
               title="Home banner"
-              className="rounded-full p-1.5 text-[#1e1e1e] transition-colors hover:bg-gray-100"
+              className="rounded-full p-1.5 lg:hidden text-[#1e1e1e] transition-colors hover:bg-gray-100"
             >
               <HugeiconsIcon icon={Image01Icon} size={24} strokeWidth={1.5} />
             </Link>
@@ -123,14 +123,15 @@ export default function AdminDashboardPage() {
             aria-label="Sign out"
             title="Sign out"
             onClick={handleSignOut}
-            className="rounded-full p-1.5 text-[#6b7280] transition-colors hover:bg-gray-100"
+            className="rounded-full p-1.5 lg:hidden text-[#6b7280] transition-colors hover:bg-gray-100"
           >
             <HugeiconsIcon icon={Logout03Icon} size={22} strokeWidth={1.5} />
           </button>
         </div>
       </header>
 
-      <div className="mt-6 flex flex-col gap-[13px]">
+      <div className="mt-6 flex flex-col gap-[13px] lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start lg:gap-6">
+        <div className="flex flex-col gap-[13px] lg:gap-6">
         {adminRequests > 0 && (
           <Link
             href="/admin/team"
@@ -163,7 +164,7 @@ export default function AdminDashboardPage() {
         {/* Quick actions */}
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold leading-5 text-[#202020]">Quick Actions</h2>
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-4 gap-1 lg:max-w-[520px]">
             {quickActions.map(({ label, href, actionIcon }, index) => {
               const primary = index === 0
               return (
@@ -186,7 +187,7 @@ export default function AdminDashboardPage() {
         {/* Today's overview */}
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold leading-6 text-[#1e1e1e]">Today&apos;s Overview</h2>
-          <div className="grid grid-cols-2 gap-x-[13px] gap-y-2">
+          <div className="grid grid-cols-2 gap-x-[13px] gap-y-2 lg:grid-cols-4 lg:gap-4">
             {overview.map(({ label, display, badge, icon }) => (
               <div key={label} className="flex h-[150px] flex-col rounded-xl border border-[#e5e7eb] bg-white p-5">
                 <div className="flex items-center justify-between">
@@ -212,8 +213,10 @@ export default function AdminDashboardPage() {
           </div>
         </section>
 
+        </div>
+
         {/* Live order feed */}
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-3 lg:sticky lg:top-6 lg:rounded-3xl lg:border lg:border-[#f3f4f6] lg:bg-white lg:p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold leading-6 text-[#1e1e1e]">Live Order Feed</h2>
             <Link href="/admin/disputes" className="text-xs font-medium text-[#2e8b57] hover:underline">

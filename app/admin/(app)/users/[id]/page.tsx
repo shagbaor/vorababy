@@ -19,7 +19,7 @@ export default function UserProfilePage() {
 
   if (!user) {
     return (
-      <main className="px-[22px]">
+      <main className="px-[22px] lg:mx-auto lg:max-w-[760px] lg:pt-6">
         <ScreenHeader title="User Profile" backHref="/admin/users" />
         <div className="mt-6">
           <EmptyState>We couldn&apos;t find this user.</EmptyState>
@@ -80,7 +80,7 @@ export default function UserProfilePage() {
   ]
 
   return (
-    <main className="px-[19px]">
+    <main className="px-[19px] lg:mx-auto lg:max-w-[760px] lg:pt-6">
       {toast}
       <ScreenHeader title="User Profile" backHref="/admin/users" />
 

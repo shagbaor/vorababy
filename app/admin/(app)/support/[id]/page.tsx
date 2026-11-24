@@ -30,7 +30,7 @@ export default function ConversationPage() {
 
   if (!conversation || !user) {
     return (
-      <main className="px-[22px]">
+      <main className="px-[22px] lg:mx-auto lg:max-w-[760px] lg:pt-6">
         <ScreenHeader title="Message" backHref="/admin/support" />
         <div className="mt-6">
           <EmptyState>We couldn&apos;t find this conversation.</EmptyState>
@@ -64,7 +64,7 @@ export default function ConversationPage() {
   }
 
   return (
-    <main className="flex min-h-[calc(100dvh-110px)] flex-col px-6">
+    <main className="flex min-h-[calc(100dvh-110px)] flex-col px-6 lg:mx-auto lg:max-w-[760px] lg:pt-6">
       {toast}
       <ScreenHeader
         backHref="/admin/support"
@@ -119,7 +119,7 @@ export default function ConversationPage() {
         <div ref={endRef} />
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] border-t border-[#f3f4f6] bg-[#fbfbfb] px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[390px] lg:left-[248px] lg:max-w-none lg:px-10 border-t border-[#f3f4f6] bg-[#fbfbfb] px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]">
         {conversation.closed ? (
           <p className="py-3 text-center text-xs text-[#6b7280]">This conversation is closed.</p>
         ) : (

@@ -42,7 +42,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <main className="px-[22px]">
+    <main className="px-[22px] lg:px-4 lg:pt-6">
       {toast}
       <ScreenHeader title="Order Management" backHref="/admin" />
 
@@ -51,7 +51,7 @@ export default function OrdersPage() {
         <FilterTabs tabs={tabs} value={filter} onChange={setFilter} />
 
         {visible.length > 0 ? (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
             {visible.map((order) => (
               <li key={order.id}>
                 <OrderCard

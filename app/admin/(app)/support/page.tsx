@@ -9,7 +9,7 @@ export default function SupportPage() {
   const { conversations, users } = useAdminStore()
 
   return (
-    <main className="px-[22px]">
+    <main className="px-[22px] lg:px-4 lg:pt-6">
       <h1 className="pt-10 text-xl font-medium text-black">Message</h1>
 
       <div className="mt-5">

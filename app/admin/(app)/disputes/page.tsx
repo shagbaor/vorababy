@@ -36,7 +36,7 @@ export default function DisputesPage() {
   const visible = disputes.filter((d) => d.status === filter)
 
   return (
-    <main className="px-[22px]">
+    <main className="px-[22px] lg:px-4 lg:pt-6">
       {toast}
       <ScreenHeader title="Dispute" backHref="/admin" />
 
@@ -44,7 +44,7 @@ export default function DisputesPage() {
         <FilterTabs tabs={tabs} value={filter} onChange={setFilter} activeClassName="bg-[#2e8b57]" />
 
         {visible.length > 0 ? (
-          <ul className="flex flex-col gap-3">
+          <ul className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
             {visible.map((dispute) => (
               <li key={dispute.id}>
                 <DisputeCard dispute={dispute} />

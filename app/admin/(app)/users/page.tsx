@@ -29,7 +29,7 @@ export default function UsersPage() {
     .filter((u) => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
 
   return (
-    <main className="px-[22px]">
+    <main className="px-[22px] lg:px-4 lg:pt-6">
       <ScreenHeader title="User Management" backHref="/admin" />
 
       <div className="mt-6 flex flex-col gap-5">
@@ -37,7 +37,7 @@ export default function UsersPage() {
         <FilterTabs tabs={tabs} value={filter} onChange={setFilter} activeClassName="bg-[#2e8b57]" />
 
         {visible.length > 0 ? (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-4">
             {visible.map((user) => (
               <li key={user.id}>
                 <UserRow user={user} />
